@@ -3,6 +3,8 @@ const {
     title = "Título Desconocido",
     artist = "Artista Desconocido",
     tone = "C",
+    category = "",
+    url_song = "",
 } = Astro.props;
 ---
 
@@ -15,8 +17,15 @@ const {
         >
             Tom: <span class="text-accent-main font-bold">{tone}</span>
         </span>
-        <span class="cursor-pointer hover:underline">
-            Principal (guitarra y guitarra eléctrica)
+        <span
+            class="cursor-pointer hover:underline bg-bg-secondary px-3 py-1 rounded-full border border-white/10 text-accent-main/90 font-bold"
+        >
+            {category}
+        </span>
+        <span
+            class="cursor-pointer hover:underline bg-bg-secondary px-3 py-1 rounded-full border border-white/10 text-text-main"
+        >
+            <a href={url_song} target="_blank">Escuchar Canción</a>
         </span>
     </div>
 </header>

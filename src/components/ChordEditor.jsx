@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { transposeText } from '../utils/music';
 
-export default function ChordEditor({ name = "content" }) {
+export default function ChordEditor({ name = "content", initialContent = "" }) {
     // Estado inicial vacío o con instrucciones
-    const [content, setContent] = useState("");
+    const [content, setContent] = useState(initialContent);
     const [currentKey, setCurrentKey] = useState("C");
     const textareaRef = useRef(null);
 

@@ -1,154 +1,57 @@
 ---
+export const prerender = false;
 import Layout from "../../layouts/Layout.astro";
 import Header from "../../components/Header.astro";
 import HeaderLyric from "../../components/HeaderLyric.astro";
 import SongView from "../../components/SongView.jsx";
-import { supabase } from "../../lib/supabase";
+import SongTools from "../../components/SongTools.astro";
+import type { Song } from "../../types/song";
 import "../../styles/global.css";
 
+let song: Song | null = null;
 const { id } = Astro.params;
 
 if (!id) {
     return Astro.redirect("/");
 }
 
-const { data: song, error } = await supabase
-    .from("songs")
-    .select("*")
-    .eq("id", id)
-    .single();
+let error = null;
 
-if (error || !song) {
-    console.error("Error fetching song:", error);
+try {
+    const res = await fetch(`http://localhost:3000/api/songs/${id}`);
+    if (!res.ok) {
+        if (res.status === 404) return Astro.redirect("/");
+        throw new Error("Failed to fetch song");
+    }
+    song = await res.json();
+} catch (e) {
+    console.error("Error fetching song:", e);
     return Astro.redirect("/");
 }
 ---
 
-<Layout title={`${song.title} - ${song.artist}`}>
+<Layout title={`${song?.title} - ${song?.artist}`}>
     <div class="flex flex-col min-h-screen bg-bg-main text-text-main">
         <Header />
 
         <div class="flex flex-1 max-w-[1400px] mx-auto w-full">
-            <!-- Left Sidebar (Tools) -->
-            <aside
-                class="w-16 flex flex-col items-center py-4 gap-4 sticky top-16 h-[calc(100vh-4rem)] border-r border-white/5 md:flex"
-            >
-                <button
-                    class="flex flex-col items-center gap-1 text-xs text-accent-main p-2 hover:bg-white/5 rounded-lg transition"
-                >
-                    <span class="text-xl font-bold">A</span>
-                    <span>Texto</span>
-                </button>
-                <div class="h-px w-8 bg-white/10 my-1"></div>
-                <button
-                    class="p-2 text-text-secondary hover:text-accent-main transition"
-                    title="Auto-scroll"
-                >
-                    <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="20"
-                        height="20"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        ><path d="m12 19-7-7 7-7"></path><path d="M19 12H5"
-                        ></path></svg
-                    >
-                </button>
-                <button
-                    class="p-2 text-text-secondary hover:text-accent-main transition"
-                    title="Acordes"
-                >
-                    <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="20"
-                        height="20"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        ><path d="M6 3v18"></path><path d="M18 3v18"
-                        ></path><path d="m6 8 12-5"></path><path d="m6 18 12-5"
-                        ></path></svg
-                    >
-                </button>
-
-                {/* Botones de Tono */}
-                <div class="flex flex-col gap-1 items-center">
-                    <button
-                        id="btn-transpose-up"
-                        class="p-2 text-text-secondary hover:text-accent-main transition font-bold"
-                        title="Subir Tono"
-                    >
-                        +
-                    </button>
-                    <span class="text-xs text-text-secondary">Tono</span>
-                    <button
-                        id="btn-transpose-down"
-                        class="p-2 text-text-secondary hover:text-accent-main transition font-bold"
-                        title="Bajar Tono"
-                    >
-                        -
-                    </button>
-                </div>
-
-                <div class="h-px w-8 bg-white/10 my-1"></div>
-                <button
-                    class="p-2 text-text-secondary hover:text-accent-main transition"
-                    title="Imprimir"
-                >
-                    <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="20"
-                        height="20"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        ><polyline points="6 9 6 2 18 2 18 9"></polyline><path
-                            d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"
-                        ></path><rect width="12" height="8" x="6" y="14"
-                        ></rect></svg
-                    >
-                </button>
-            </aside>
+            <SongTools id={id} />
 
             <main class="flex-1 p-6 md:p-10 min-w-0">
                 <HeaderLyric
-                    title={song.title}
-                    artist={song.artist}
-                    tone={song.key}
+                    title={song?.title}
+                    artist={song?.artist}
+                    tone={song?.key}
+                    category={song?.category?.name}
+                    url_song={song?.url_song}
                 />
 
                 <SongView
                     client:load
-                    initialContent={song.content}
-                    initialKey={song.key}
+                    initialContent={song?.content}
+                    initialKey={song?.key}
                 />
             </main>
         </div>
     </div>
 </Layout>
-
-<script>
-    const btnUp = document.getElementById("btn-transpose-up");
-    const btnDown = document.getElementById("btn-transpose-down");
-
-    const dispatchTranspose = (semitones: number) => {
-        window.dispatchEvent(
-            new CustomEvent("song-transpose", {
-                detail: { semitones },
-            }),
-        );
-    };
-
-    btnUp?.addEventListener("click", () => dispatchTranspose(1));
-    btnDown?.addEventListener("click", () => dispatchTranspose(-1));
-</script>

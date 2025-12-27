@@ -1,9 +1,27 @@
 ---
+export const prerender = false;
 import Layout from "../layouts/Layout.astro";
 import Header from "../components/Header.astro";
 import ChordEditor from "../components/ChordEditor.jsx";
 import { supabase } from "../lib/supabase";
 import "../styles/global.css";
+
+const API_URL = import.meta.env.PUBLIC_API_URL || "http://localhost:3000/api";
+
+interface Category {
+    id: number;
+    name: string;
+}
+
+let categories: Category[] = [];
+try {
+    const res = await fetch(`${API_URL}/categories`);
+    if (res.ok) {
+        categories = await res.json();
+    }
+} catch (e) {
+    console.error("Error fetching categories:", e);
+}
 
 if (Astro.request.method === "POST") {
     try {
@@ -11,42 +29,31 @@ if (Astro.request.method === "POST") {
         const artist = formData.get("artist")?.toString() || "Unknown";
         const title = formData.get("title")?.toString() || "Untitled";
         const key = formData.get("key")?.toString() || "C";
-        const video = formData.get("video")?.toString() || "";
+        const url_song = formData.get("url_song")?.toString() || "";
         const content = formData.get("content")?.toString() || "";
+        const categoryId = formData.get("categoryId")?.toString() || "1";
 
-        // Generar ID único (slug simple)
-        const id = `${title}-${artist}`
-            .toLowerCase()
-            .normalize("NFD")
-            .replace(/[\u0300-\u036f]/g, "") // Eliminar tildes
-            .replace(/[^a-z0-9]+/g, "-")
-            .replace(/(^-|-$)+/g, "");
-
-        // Timestamp simple para evitar colisiones si el slug ya existe?
-        // Por ahora confiamos en titulo-artista. Si falla, el usuario verá error (o supbase lanzará error duplicate key)
-
-        console.log("Attempting to save song...");
-        const { error } = await supabase.from("songs").insert({
-            id,
-            title,
-            artist,
-            key,
-            video,
-            content,
+        const res = await fetch(`${API_URL}/songs`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                title: title,
+                artist: artist,
+                content: content,
+                key: key,
+                url_song: url_song,
+                categoryId: parseInt(categoryId),
+            }),
         });
 
-        if (error) {
-            console.error(
-                "Supabase Error saving song:",
-                JSON.stringify(error, null, 2),
-            );
-            // Podríamos renderizar un error en la UI, pero por simplicidad logueamos
+        if (!res.ok) {
+            const errData = await res.json();
+            console.error("Error saving song:", errData);
         } else {
-            console.log(
-                "Song saved successfully! Redirecting to:",
-                `/songs/${id}`,
-            );
-            return Astro.redirect(`/songs/${id}`);
+            const savedSong = await res.json();
+            return Astro.redirect(`/songs/${savedSong.id}`);
         }
     } catch (e) {
         console.error("Server exception:", e);
@@ -124,19 +131,49 @@ if (Astro.request.method === "POST") {
                     </div>
                 </div>
 
-                <div class="space-y-2">
-                    <label
-                        for="video"
-                        class="block text-sm font-medium text-text-secondary"
-                        >Link del Video (YouTube)</label
-                    >
-                    <input
-                        type="url"
-                        id="video"
-                        name="video"
-                        class="w-full bg-bg-secondary border border-white/10 rounded-lg p-3 text-text-main focus:outline-none focus:border-accent-main transition-colors placeholder-white/20"
-                        placeholder="https://youtube.com/..."
-                    />
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-2">
+                        <label
+                            for="url_song"
+                            class="block text-sm font-medium text-text-secondary"
+                            >Link del Video (YouTube)</label
+                        >
+                        <input
+                            type="url"
+                            id="url_song"
+                            name="url_song"
+                            class="w-full bg-bg-secondary border border-white/10 rounded-lg p-3 text-text-main focus:outline-none focus:border-accent-main transition-colors placeholder-white/20"
+                            placeholder="https://youtube.com/..."
+                        />
+                    </div>
+
+                    <div class="space-y-2">
+                        <div class="flex justify-between items-center">
+                            <label
+                                for="categoryId"
+                                class="block text-sm font-medium text-text-secondary"
+                                >Categoría</label
+                            >
+                            <button
+                                type="button"
+                                id="btn-new-category"
+                                class="text-xs text-accent-main hover:text-white underline transition-colors"
+                            >
+                                + Nueva Categoría
+                            </button>
+                        </div>
+                        <select
+                            id="categoryId"
+                            name="categoryId"
+                            class="w-full bg-bg-secondary border border-white/10 rounded-lg p-3 text-text-main focus:outline-none focus:border-accent-main transition-colors appearance-none cursor-pointer"
+                        >
+                            {
+                                categories.map((cat) => (
+                                    <option value={cat.id}>{cat.name}</option>
+                                ))
+                            }
+                        </select>
+                    </div>
                 </div>
 
                 <div class="border-t border-white/10 pt-6">
@@ -168,6 +205,94 @@ if (Astro.request.method === "POST") {
             </form>
         </main>
     </div>
+    {/* Modal para crear categoría */}
+    <dialog
+        id="modal-category"
+        class="bg-bg-secondary text-text-main border border-white/10 rounded-lg p-6 backdrop:backdrop-blur-sm shadow-xl w-full max-w-sm"
+    >
+        <form method="dialog" class="space-y-4">
+            <h3 class="text-lg font-bold">Nueva Categoría</h3>
+            <div class="space-y-2">
+                <label for="new-cat-name" class="text-sm text-text-secondary"
+                    >Nombre</label
+                >
+                <input
+                    type="text"
+                    id="new-cat-name"
+                    class="w-full bg-bg-main border border-white/10 rounded p-2 focus:border-accent-main focus:outline-none"
+                    placeholder="Ej. Adoración"
+                />
+            </div>
+            <div class="flex justify-end gap-2 pt-2">
+                <button
+                    value="cancel"
+                    class="px-4 py-2 text-sm text-text-secondary hover:text-white transition-colors"
+                    >Cancelar</button
+                >
+                <button
+                    id="btn-save-category"
+                    type="button"
+                    class="px-4 py-2 text-sm bg-accent-main text-white rounded hover:bg-accent-main/90 transition-colors"
+                    >Guardar</button
+                >
+            </div>
+        </form>
+    </dialog>
+
+    <script is:inline define:vars={{ API_URL }}>
+        const btnNewCategory = document.getElementById("btn-new-category");
+        const modalCategory = document.getElementById("modal-category");
+        const btnSaveCategory = document.getElementById("btn-save-category");
+        const inputCatName = document.getElementById("new-cat-name");
+        const selectCategory = document.getElementById("categoryId");
+
+        if (btnNewCategory && modalCategory) {
+            btnNewCategory.addEventListener("click", () => {
+                modalCategory.showModal();
+                inputCatName.value = "";
+                inputCatName.focus();
+            });
+        }
+
+        if (btnSaveCategory) {
+            btnSaveCategory.addEventListener("click", async () => {
+                const name = inputCatName.value.trim();
+                if (!name) return;
+
+                try {
+                    btnSaveCategory.disabled = true;
+                    btnSaveCategory.textContent = "Guardando...";
+
+                    const res = await fetch(`${API_URL}/categories`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ name }),
+                    });
+
+                    if (res.ok) {
+                        const newCat = await res.json();
+                        // Agregar al select
+                        const option = document.createElement("option");
+                        option.value = newCat.id;
+                        option.textContent = newCat.name;
+                        option.selected = true; // Seleccionar automáticamente
+                        selectCategory.appendChild(option);
+
+                        modalCategory.close();
+                    } else {
+                        alert("Error al crear la categoría");
+                        console.error(await res.json());
+                    }
+                } catch (e) {
+                    console.error(e);
+                    alert("Error de conexión");
+                } finally {
+                    btnSaveCategory.disabled = false;
+                    btnSaveCategory.textContent = "Guardar";
+                }
+            });
+        }
+    </script>
 </Layout>
 
 <script>

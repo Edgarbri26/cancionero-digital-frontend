@@ -1,0 +1,226 @@
+---
+export const prerender = false;
+import Layout from "../../layouts/Layout.astro";
+import Header from "../../components/Header.astro";
+import ChordEditor from "../../components/ChordEditor.jsx";
+import "../../styles/global.css";
+
+const { id } = Astro.params;
+const API_URL = import.meta.env.PUBLIC_API_URL || "http://localhost:3000/api";
+
+interface Category {
+    id: number;
+    name: string;
+}
+
+let song = null;
+let categories: Category[] = [];
+let error = null;
+
+// Fetch Categories
+try {
+    const res = await fetch(`${API_URL}/categories`);
+    if (res.ok) {
+        categories = await res.json();
+    }
+} catch (e) {
+    console.error("Error fetching categories:", e);
+}
+
+// Fetch Song Data
+try {
+    const res = await fetch(`${API_URL}/songs/${id}`);
+    if (res.ok) {
+        song = await res.json();
+    } else {
+        return Astro.redirect("/");
+    }
+} catch (e) {
+    console.error("Error fetching song:", e);
+    return Astro.redirect("/");
+}
+
+// Handle Update
+if (Astro.request.method === "POST") {
+    try {
+        const formData = await Astro.request.formData();
+        const artist = formData.get("artist")?.toString() || "Unknown";
+        const title = formData.get("title")?.toString() || "Untitled";
+        const key = formData.get("key")?.toString() || "C";
+        const url_song = formData.get("url_song")?.toString() || "";
+        const content = formData.get("content")?.toString() || "";
+        const categoryId = formData.get("categoryId")?.toString() || "1";
+
+        const res = await fetch(`${API_URL}/songs/${id}`, {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                title,
+                artist,
+                content,
+                key,
+                url_song,
+                categoryId: parseInt(categoryId),
+            }),
+        });
+
+        if (!res.ok) {
+            const errData = await res.json();
+            console.error("Error updating song:", errData);
+        } else {
+            return Astro.redirect(`/songs/${id}`);
+        }
+    } catch (e) {
+        console.error("Server exception:", e);
+    }
+}
+---
+
+<Layout title={`Editar - ${song.title}`}>
+    <div class="flex flex-col min-h-screen bg-bg-main text-text-main">
+        <Header />
+
+        <main class="flex-1 max-w-6xl mx-auto w-full p-6 md:p-10">
+            <h1 class="text-3xl font-bold text-accent-main mb-8">
+                Editar Canción
+            </h1>
+
+            <form class="space-y-8" method="POST">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="space-y-2">
+                        <label
+                            for="artist"
+                            class="block text-sm font-medium text-text-secondary"
+                            >Artista / Banda</label
+                        >
+                        <input
+                            type="text"
+                            id="artist"
+                            name="artist"
+                            value={song.artist}
+                            class="w-full bg-bg-secondary border border-white/10 rounded-lg p-3 text-text-main focus:outline-none focus:border-accent-main transition-colors placeholder-white/20"
+                        />
+                    </div>
+
+                    <div class="space-y-2">
+                        <label
+                            for="title"
+                            class="block text-sm font-medium text-text-secondary"
+                            >Nombre de la canción</label
+                        >
+                        <input
+                            type="text"
+                            id="title"
+                            name="title"
+                            value={song.title}
+                            class="w-full bg-bg-secondary border border-white/10 rounded-lg p-3 text-text-main focus:outline-none focus:border-accent-main transition-colors placeholder-white/20"
+                        />
+                    </div>
+
+                    <div class="space-y-2">
+                        <label
+                            for="key"
+                            class="block text-sm font-medium text-text-secondary"
+                            >Tono Principal</label
+                        >
+                        <select
+                            id="key"
+                            name="key"
+                            class="w-full bg-bg-secondary border border-white/10 rounded-lg p-3 text-text-main focus:outline-none focus:border-accent-main transition-colors appearance-none cursor-pointer"
+                        >
+                            {
+                                [
+                                    "C",
+                                    "C#",
+                                    "D",
+                                    "D#",
+                                    "E",
+                                    "F",
+                                    "F#",
+                                    "G",
+                                    "G#",
+                                    "A",
+                                    "A#",
+                                    "B",
+                                ].map((k) => (
+                                    <option value={k} selected={song.key === k}>
+                                        {k}
+                                    </option>
+                                ))
+                            }
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-2">
+                        <label
+                            for="url_song"
+                            class="block text-sm font-medium text-text-secondary"
+                            >Link del Video (YouTube)</label
+                        >
+                        <input
+                            type="url"
+                            id="url_song"
+                            name="url_song"
+                            value={song.url_song || ""}
+                            class="w-full bg-bg-secondary border border-white/10 rounded-lg p-3 text-text-main focus:outline-none focus:border-accent-main transition-colors placeholder-white/20"
+                        />
+                    </div>
+
+                    <div class="space-y-2">
+                        <label
+                            for="categoryId"
+                            class="block text-sm font-medium text-text-secondary"
+                            >Categoría</label
+                        >
+                        <select
+                            id="categoryId"
+                            name="categoryId"
+                            class="w-full bg-bg-secondary border border-white/10 rounded-lg p-3 text-text-main focus:outline-none focus:border-accent-main transition-colors appearance-none cursor-pointer"
+                        >
+                            {
+                                categories.map((cat) => (
+                                    <option
+                                        value={cat.id}
+                                        selected={song.categoryId === cat.id}
+                                    >
+                                        {cat.name}
+                                    </option>
+                                ))
+                            }
+                        </select>
+                    </div>
+                </div>
+
+                <div class="border-t border-white/10 pt-6">
+                    <div class="mb-4">
+                        <h3 class="text-xl font-semibold text-white">
+                            Letra y Acordes
+                        </h3>
+                        <p class="text-sm text-text-secondary">
+                            Edita la letra y posición de los acordes.
+                        </p>
+                    </div>
+                    {/* Pre-fill content in ChordEditor */}
+                    <ChordEditor
+                        client:only="react"
+                        name="content"
+                        initialContent={song.content}
+                    />
+                </div>
+
+                <div class="flex justify-end pt-4">
+                    <button
+                        type="submit"
+                        class="bg-accent-main hover:bg-accent-main/90 text-white font-bold py-3 px-8 rounded-lg transition-transform transform hover:scale-105 shadow-lg shadow-accent-main/20"
+                    >
+                        Guardar Cambios
+                    </button>
+                </div>
+            </form>
+        </main>
+    </div>
+</Layout>

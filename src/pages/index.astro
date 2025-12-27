@@ -1,16 +1,30 @@
 ---
+export const prerender = false;
 import Layout from "../layouts/Layout.astro";
 import Header from "../components/Header.astro";
 import { supabase } from "../lib/supabase";
 import "../styles/global.css";
 
-const { data: songs, error } = await supabase
-	.from("songs")
-	.select("id, title, artist, key")
-	.order("created_at", { ascending: false });
+import type { Song } from "../types/song";
 
-if (error) {
-	console.error("Error fetching songs:", error);
+let songs: Song[] = [];
+let error = null;
+
+try {
+	const res = await fetch(`http://localhost:3000/api/songs`);
+	if (!res.ok) throw new Error("Failed to fetch songs");
+	songs = await res.json();
+	// Invert sorting if backend doesn't sort (or rely on backend sort)
+	// The backend `findMany` doesn't currently order by created_at,
+	// we can add sorting there or here. For now, we take as is.
+	songs.reverse();
+} catch (e) {
+	if (e instanceof Error) {
+		error = e.message;
+	} else {
+		error = String(e);
+		console.error("Error fetching songs:", error);
+	}
 }
 ---
 
@@ -38,6 +52,9 @@ if (error) {
 								<div class="flex items-center gap-2">
 									<span class="text-xs bg-white/5 px-2 py-1 rounded text-text-secondary group-hover:bg-accent-main/10 group-hover:text-accent-main transition-colors">
 										Tom: {song.key}
+									</span>
+									<span class="text-xs bg-white/5 px-2 py-1 rounded text-text-secondary group-hover:bg-accent-main/10 group-hover:text-accent-main transition-colors">
+										Categoría: {song.category?.name}
 									</span>
 								</div>
 							</article>
