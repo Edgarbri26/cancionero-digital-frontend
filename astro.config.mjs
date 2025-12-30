@@ -13,6 +13,7 @@ import vercel from '@astrojs/vercel';
 export default defineConfig({
   output: 'server',
   adapter: vercel(),
+  integrations: [react()],
   vite: {
     plugins: [tailwindcss()]
   },
@@ -20,5 +21,5 @@ export default defineConfig({
 
 
 
-  integrations: [react()]
+  // integrations: [react()]
 });
