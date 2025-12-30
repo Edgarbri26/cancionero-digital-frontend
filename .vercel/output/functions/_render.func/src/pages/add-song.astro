@@ -1,0 +1,296 @@
+---
+export const prerender = false;
+import Layout from "../layouts/Layout.astro";
+import Header from "../components/Header.astro";
+import ChordEditor from "../components/ChordEditor.jsx";
+import { supabase } from "../lib/supabase";
+import "../styles/global.css";
+import type { Category } from "../types/category";
+import { createSong } from "@services/songs";
+
+const API_URL = import.meta.env.PUBLIC_API_URL || "http://localhost:3000/api";
+
+const token = Astro.cookies.get("token")?.value;
+if (!token) {
+    return Astro.redirect("/login");
+}
+
+let categories: Category[] = [];
+try {
+    const res = await fetch(`${API_URL}/categories`);
+    if (res.ok) {
+        categories = await res.json();
+    }
+} catch (e) {
+    console.error("Error fetching categories:", e);
+}
+
+let errorMessage = "";
+
+if (Astro.request.method === "POST") {
+    const formData = await Astro.request.formData();
+    const result = await createSong(formData, token);
+
+    if (result.success) {
+        return Astro.redirect(`/songs/${result.data.id}`);
+    } else {
+        errorMessage = result.error || "Error desconocido";
+    }
+}
+---
+
+<Layout title="Subir Canción">
+    <div class="flex flex-col min-h-screen bg-bg-main text-text-main">
+        <main class="flex-1 max-w-6xl mx-auto w-full p-6 md:p-10">
+            <h1 class="text-3xl font-bold text-accent-main mb-8">
+                Enviar Cifrado
+            </h1>
+
+            {
+                errorMessage ? (
+                    <div class="bg-red-500/10 border border-red-500/50 text-red-500 p-4 rounded-lg mb-6">
+                        {errorMessage}
+                    </div>
+                ) : null
+            }
+
+            <form class="space-y-8" method="POST">
+                {/* Info Básica (Grid de 3 columnas para aprovechar espacio) */}
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="space-y-2">
+                        <label
+                            for="artist"
+                            class="block text-sm font-medium text-text-secondary"
+                            >Artista / Banda</label
+                        >
+                        <input
+                            type="text"
+                            id="artist"
+                            name="artist"
+                            class="w-full bg-bg-secondary border border-white/10 rounded-lg p-3 text-text-main focus:outline-none focus:border-accent-main transition-colors placeholder-white/20"
+                            placeholder="Ej. Cindy Barrera"
+                        />
+                    </div>
+
+                    <div class="space-y-2">
+                        <label
+                            for="title"
+                            class="block text-sm font-medium text-text-secondary"
+                            >Nombre de la canción</label
+                        >
+                        <input
+                            type="text"
+                            id="title"
+                            name="title"
+                            class="w-full bg-bg-secondary border border-white/10 rounded-lg p-3 text-text-main focus:outline-none focus:border-accent-main transition-colors placeholder-white/20"
+                            placeholder="Ej. Dios está aquí"
+                            required
+                        />
+                    </div>
+
+                    <div class="space-y-2">
+                        <label
+                            for="key"
+                            class="block text-sm font-medium text-text-secondary"
+                            >Tono Principal</label
+                        >
+                        <select
+                            id="key"
+                            name="key"
+                            class="w-full bg-bg-secondary border border-white/10 rounded-lg p-3 text-text-main focus:outline-none focus:border-accent-main transition-colors appearance-none cursor-pointer"
+                        >
+                            <option value="C">C (Do)</option>
+                            <option value="C#">C# / Db</option>
+                            <option value="D">D (Re)</option>
+                            <option value="D#">D# / Eb</option>
+                            <option value="E">E (Mi)</option>
+                            <option value="F">F (Fa)</option>
+                            <option value="F#">F# / Gb</option>
+                            <option value="G">G (Sol)</option>
+                            <option value="G#">G# / Ab</option>
+                            <option value="A">A (La)</option>
+                            <option value="A#">A# / Bb</option>
+                            <option value="B">B (Si)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-2">
+                        <label
+                            for="url_song"
+                            class="block text-sm font-medium text-text-secondary"
+                            >Link del Video (YouTube)</label
+                        >
+                        <input
+                            type="url"
+                            id="url_song"
+                            name="url_song"
+                            class="w-full bg-bg-secondary border border-white/10 rounded-lg p-3 text-text-main focus:outline-none focus:border-accent-main transition-colors placeholder-white/20"
+                            placeholder="https://youtube.com/..."
+                        />
+                    </div>
+
+                    <div class="space-y-2">
+                        <div class="flex justify-between items-center">
+                            <label
+                                for="categoryId"
+                                class="block text-sm font-medium text-text-secondary"
+                                >Categoría</label
+                            >
+                            <button
+                                type="button"
+                                id="btn-new-category"
+                                class="text-xs text-accent-main hover:text-white underline transition-colors"
+                            >
+                                + Nueva Categoría
+                            </button>
+                        </div>
+                        <select
+                            id="categoryId"
+                            name="categoryId"
+                            class="w-full bg-bg-secondary border border-white/10 rounded-lg p-3 text-text-main focus:outline-none focus:border-accent-main transition-colors appearance-none cursor-pointer"
+                        >
+                            {
+                                categories.map((cat) => (
+                                    <option value={cat.id}>{cat.name}</option>
+                                ))
+                            }
+                        </select>
+                    </div>
+                </div>
+
+                <div class="border-t border-white/10 pt-6">
+                    <div class="mb-4">
+                        <h3 class="text-xl font-semibold text-white">
+                            Letra y Acordes
+                        </h3>
+                        <p class="text-sm text-text-secondary">
+                            Escribe la letra y usa los botones para insertar los
+                            acordes en la posición exacta.
+                        </p>
+                    </div>
+
+                    {/* AQUÍ VA LA MAGIA DE REACT */}
+                    {
+                        /* Pasamos 'name="content"' para que el form lo reconozca */
+                    }
+                    <ChordEditor client:only="react" name="content" />
+                </div>
+
+                <div class="flex justify-end pt-4">
+                    <button
+                        type="submit"
+                        class="bg-accent-main hover:bg-accent-main/90 text-white font-bold py-3 px-8 rounded-lg transition-transform transform hover:scale-105 shadow-lg shadow-accent-main/20"
+                    >
+                        Guardar Canción
+                    </button>
+                </div>
+            </form>
+        </main>
+    </div>
+    {/* Modal para crear categoría */}
+    <dialog
+        id="modal-category"
+        class="bg-bg-secondary text-text-main border border-white/10 rounded-lg p-6 backdrop:backdrop-blur-sm shadow-xl w-full max-w-sm"
+    >
+        <form method="dialog" class="space-y-4">
+            <h3 class="text-lg font-bold">Nueva Categoría</h3>
+            <div class="space-y-2">
+                <label for="new-cat-name" class="text-sm text-text-secondary"
+                    >Nombre</label
+                >
+                <input
+                    type="text"
+                    id="new-cat-name"
+                    class="w-full bg-bg-main border border-white/10 rounded p-2 focus:border-accent-main focus:outline-none"
+                    placeholder="Ej. Adoración"
+                />
+            </div>
+            <div class="flex justify-end gap-2 pt-2">
+                <button
+                    value="cancel"
+                    class="px-4 py-2 text-sm text-text-secondary hover:text-white transition-colors"
+                    >Cancelar</button
+                >
+                <button
+                    id="btn-save-category"
+                    type="button"
+                    class="px-4 py-2 text-sm bg-accent-main text-white rounded hover:bg-accent-main/90 transition-colors"
+                    >Guardar</button
+                >
+            </div>
+        </form>
+    </dialog>
+
+    <script is:inline define:vars={{ API_URL }}>
+        const btnNewCategory = document.getElementById("btn-new-category");
+        const modalCategory = document.getElementById("modal-category");
+        const btnSaveCategory = document.getElementById("btn-save-category");
+        const inputCatName = document.getElementById("new-cat-name");
+        const selectCategory = document.getElementById("categoryId");
+
+        if (btnNewCategory && modalCategory) {
+            btnNewCategory.addEventListener("click", () => {
+                modalCategory.showModal();
+                inputCatName.value = "";
+                inputCatName.focus();
+            });
+        }
+
+        if (btnSaveCategory) {
+            btnSaveCategory.addEventListener("click", async () => {
+                const name = inputCatName.value.trim();
+                if (!name) return;
+
+                try {
+                    btnSaveCategory.disabled = true;
+                    btnSaveCategory.textContent = "Guardando...";
+
+                    const res = await fetch(`${API_URL}/categories`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ name }),
+                    });
+
+                    if (res.ok) {
+                        const newCat = await res.json();
+                        // Agregar al select
+                        const option = document.createElement("option");
+                        option.value = newCat.id;
+                        option.textContent = newCat.name;
+                        option.selected = true; // Seleccionar automáticamente
+                        selectCategory.appendChild(option);
+
+                        modalCategory.close();
+                    } else {
+                        alert("Error al crear la categoría");
+                        console.error(await res.json());
+                    }
+                } catch (e) {
+                    console.error(e);
+                    alert("Error de conexión");
+                } finally {
+                    btnSaveCategory.disabled = false;
+                    btnSaveCategory.textContent = "Guardar";
+                }
+            });
+        }
+    </script>
+</Layout>
+
+<script>
+    const keySelect = document.getElementById("key") as HTMLSelectElement;
+
+    // Al cargar, aseguramos que el valor inicial se transmita si es necesario,
+    // aunque idealmente el editor arranca en C.
+    // keySelect.value = "C";
+
+    keySelect?.addEventListener("change", (e) => {
+        const newKey = (e.target as HTMLSelectElement).value;
+        const event = new CustomEvent("song-key-change", {
+            detail: { key: newKey },
+        });
+        window.dispatchEvent(event);
+    });
+</script>

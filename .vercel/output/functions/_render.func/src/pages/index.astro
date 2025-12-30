@@ -1,0 +1,132 @@
+---
+export const prerender = false;
+import Layout from "../layouts/Layout.astro";
+import "../styles/global.css";
+
+import type { Song } from "../types/song";
+import type { Category } from "../types/category";
+import GirdSongs from "@components/GirdSongs.astro";
+
+let songs: Song[] = [];
+let categories: Category[] = [];
+let stats = { totalSongs: 0, totalCategories: 0 };
+let error = null;
+
+const API_URL = import.meta.env.PUBLIC_API_URL || "http://localhost:3000/api";
+
+try {
+	// Fetch latest 10 songs
+	const res = await fetch(`${API_URL}/songs?limit=10`);
+	if (!res.ok) throw new Error("Failed to fetch songs");
+	songs = await res.json();
+	// Backend now returns ordered by desc
+
+	// Fetch categories
+	const catRes = await fetch(`${API_URL}/categories`);
+	if (catRes.ok) {
+		categories = await catRes.json();
+	}
+
+	// Fetch stats
+	const statsRes = await fetch(`${API_URL}/stats`);
+	if (statsRes.ok) {
+		stats = await statsRes.json();
+	}
+} catch (e) {
+	if (e instanceof Error) {
+		error = e.message;
+	} else {
+		error = String(e);
+		console.error("Error fetching songs:", error);
+	}
+}
+---
+
+<Layout title="CancioneroDigital - Tus canciones">
+	<div class="flex flex-col min-h-screen bg-bg-main text-text-main">
+		<main class="flex-1 max-w-6xl mx-auto w-full p-6 md:p-10">
+			<!-- Dashboard Stats -->
+			<section class="mb-12">
+				<h1 class="text-3xl font-bold text-accent-main mb-6">
+					Panel Principal
+				</h1>
+				<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+					<div
+						class="bg-bg-secondary p-6 rounded-xl flex flex-col items-center justify-center shadow-lg border border-white/5 hover:border-accent-main/30 transition-colors"
+					>
+						<h2
+							class="text-lg font-medium text-text-secondary mb-2"
+						>
+							Total de Canciones
+						</h2>
+						<p class="text-4xl font-bold text-accent-main">
+							{stats.totalSongs}
+						</p>
+					</div>
+					<div
+						class="bg-bg-secondary p-6 rounded-xl flex flex-col items-center justify-center shadow-lg border border-white/5 hover:border-accent-main/30 transition-colors"
+					>
+						<h2
+							class="text-lg font-medium text-text-secondary mb-2"
+						>
+							Categorías
+						</h2>
+						<p class="text-4xl font-bold text-accent-main">
+							{stats.totalCategories}
+						</p>
+					</div>
+				</div>
+			</section>
+
+			<section>
+				<div class="flex items-center justify-between mb-8">
+					<h2 class="text-2xl font-bold text-white">
+						Últimas Agregadas
+					</h2>
+					<a
+						href="/search/all"
+						class="text-sm font-medium text-accent-main hover:text-white transition-colors"
+					>
+						Ver todas →
+					</a>
+				</div>
+
+				<!-- Categorías Quick Filter -->
+				<div class="flex flex-wrap gap-2 mb-8">
+					<a
+						href="/search/all"
+						class="px-4 py-2 rounded-full text-sm font-medium transition-colors bg-bg-secondary text-text-secondary hover:text-white hover:bg-white/10"
+					>
+						Explorar Todas
+					</a>
+					{
+						categories.map((cat) => (
+							<a
+								href={`/search/all?categoryId=${cat.id}`}
+								class="px-4 py-2 rounded-full text-sm font-medium transition-colors bg-bg-secondary text-text-secondary hover:text-white hover:bg-white/10"
+							>
+								{cat.name}
+							</a>
+						))
+					}
+				</div>
+
+				<GirdSongs songs={songs} />
+
+				{
+					(!songs || songs.length === 0) && (
+						<div class="text-center py-20 opacity-50">
+							<p class="text-xl mb-4">No hay canciones todavía</p>
+							<a
+								href="/add-song"
+								class="text-accent-main hover:underline"
+							>
+								¡Sube la primera!
+							</a>
+						</div>
+					)
+				}
+			</section>
+		</main>
+	</div>
+</Layout>

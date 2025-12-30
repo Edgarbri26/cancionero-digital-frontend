@@ -1,0 +1,63 @@
+---
+export const prerender = false;
+import Layout from "@layouts/Layout.astro";
+import HeaderLyric from "@components/HeaderLyric.astro";
+import SongView from "@components/SongView.jsx";
+import SongTools from "@components/SongTools.astro";
+import YouTubePlayer from "@components/YouTubePlayer.astro";
+import type { Song } from "../../types/song";
+import "../../styles/global.css";
+
+let song: Song | null = null;
+const { id } = Astro.params;
+
+if (!id) {
+    return Astro.redirect("/");
+}
+
+let error = null;
+
+try {
+    const API_URL =
+        import.meta.env.PUBLIC_API_URL || "http://localhost:3000/api";
+    const res = await fetch(`${API_URL}/songs/${id}`);
+    if (!res.ok) {
+        if (res.status === 404) return Astro.redirect("/");
+        throw new Error("Failed to fetch song");
+    }
+    song = await res.json();
+} catch (e) {
+    console.error("Error fetching song:", e);
+    return Astro.redirect("/");
+}
+---
+
+<Layout title={`${song?.title} - ${song?.artist}`}>
+    <div class="flex flex-col min-h-screen bg-bg-main text-text-main">
+        <div class="flex flex-1 max-w-[1400px] mx-auto w-full">
+            <SongTools id={id} />
+
+            <main class="flex-1 p-6 md:p-10 min-w-0">
+                <HeaderLyric
+                    title={song?.title}
+                    artist={song?.artist}
+                    tone={song?.key}
+                    category={song?.category?.name}
+                />
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+                    <div class="lg:col-span-2">
+                        <SongView
+                            client:load
+                            initialContent={song?.content}
+                            initialKey={song?.key}
+                        />
+                    </div>
+                    <div class="lg:col-span-1">
+                        <YouTubePlayer url={song?.url_song} />
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+</Layout>
