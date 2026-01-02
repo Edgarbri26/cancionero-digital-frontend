@@ -63,7 +63,8 @@ const { id } = Astro.props;
         >
     </a>
     <a
-        href={`/print-song/${id}`}
+        id="btn-print"
+        href={`/print-song/${id}${Astro.url.search}`}
         class="p-2 text-text-secondary hover:text-accent-main transition"
         title="Imprimir"
     >

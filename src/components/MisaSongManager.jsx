@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
+import Swal from "sweetalert2";
 import { searchSongs } from "../services/songs";
 import { addSongToMisa } from "../services/misas";
 
-export default function MisaSongManager({ misaId, moments, token }) {
+export default function MisaSongManager({ misaId, moments, token, editToken }) {
     const [searchTerm, setSearchTerm] = useState("");
     const [searchResults, setSearchResults] = useState([]);
     const [selectedSong, setSelectedSong] = useState(null);
@@ -10,6 +11,7 @@ export default function MisaSongManager({ misaId, moments, token }) {
     const [selectedKey, setSelectedKey] = useState("");
     const [isSearching, setIsSearching] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    // const [message, setMessage] = useState({ type: "", text: "" }); // Removing manual message state if not used elsewhere, but might be used by search. Keeping clean.
     const [message, setMessage] = useState({ type: "", text: "" });
     const [isOpen, setIsOpen] = useState(false);
 
@@ -55,7 +57,7 @@ export default function MisaSongManager({ misaId, moments, token }) {
         if (!selectedSong) return;
 
         setIsSubmitting(true);
-        setMessage({ type: "", text: "" });
+        // setMessage({ type: "", text: "" });
 
         try {
             const res = await addSongToMisa(
@@ -63,22 +65,46 @@ export default function MisaSongManager({ misaId, moments, token }) {
                 selectedSong.id,
                 selectedMomentId ? parseInt(selectedMomentId) : null,
                 selectedKey,
-                token
+                token,
+                editToken
             );
 
             if (res.success) {
-                setMessage({ type: "success", text: "Canción agregada con éxito." });
+                Swal.fire({
+                    icon: "success",
+                    title: "¡Añadida!",
+                    text: "La canción se agregó correctamente",
+                    timer: 1500,
+                    showConfirmButton: false,
+                    background: "#1f2937",
+                    color: "#fff"
+                }).then(() => {
+                    // Reload page to show new song
+                    window.location.reload();
+                });
+
                 // Reset form
                 setSelectedSong(null);
                 setSelectedMomentId("");
                 setSelectedKey("");
-                // Reload page to show new song
-                window.location.reload();
+
             } else {
-                setMessage({ type: "error", text: res.error });
+                Swal.fire({
+                    icon: "error",
+                    title: "Error",
+                    text: res.error || "No se pudo agregar la canción",
+                    background: "#1f2937",
+                    color: "#fff"
+                });
             }
         } catch (error) {
-            setMessage({ type: "error", text: "Error al agregar la canción." });
+            Swal.fire({
+                icon: "error",
+                title: "Error",
+                text: "Error de conexión",
+                background: "#1f2937",
+                color: "#fff"
+            });
         } finally {
             setIsSubmitting(false);
         }

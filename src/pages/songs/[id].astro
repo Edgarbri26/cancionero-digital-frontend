@@ -30,6 +30,8 @@ try {
     console.error("Error fetching song:", e);
     return Astro.redirect("/");
 }
+const toneParam = Astro.url.searchParams.get("tone");
+const displayTone = toneParam || song?.key;
 ---
 
 <Layout title={`${song?.title} - ${song?.artist}`}>
@@ -41,7 +43,7 @@ try {
                 <HeaderLyric
                     title={song?.title}
                     artist={song?.artist}
-                    tone={song?.key}
+                    tone={displayTone}
                     category={song?.category?.name}
                 />
 
@@ -50,7 +52,8 @@ try {
                         <SongView
                             client:load
                             initialContent={song?.content}
-                            initialKey={song?.key}
+                            initialKey={displayTone}
+                            originalKey={song?.key}
                         />
                     </div>
                     <div class="lg:col-span-1">

@@ -4,8 +4,8 @@ import Layout from "../../layouts/Layout.astro";
 import Header from "../../components/Header.astro";
 import { getMisas } from "../../services/misas";
 
-const { success, data: misas } = await getMisas();
 const token = Astro.cookies.get("token")?.value;
+const { success, data: misas } = await getMisas(token);
 
 // Filter misas
 const today = new Date();

@@ -1,0 +1,122 @@
+---
+import Layout from "../../../layouts/Layout.astro";
+import { getMoments } from "../../../services/moments";
+import SongView from "../../../components/SongView.jsx";
+import HeaderLyric from "../../../components/HeaderLyric.astro";
+
+const { id } = Astro.params;
+const API_URL = import.meta.env.PUBLIC_API_URL || "http://localhost:3000/api";
+
+let misa = null;
+let error = null;
+let moments = [];
+let token = Astro.cookies.get("token")?.value;
+
+if (id) {
+    try {
+        const headers = {};
+        if (token) headers["Authorization"] = `Bearer ${token}`;
+
+        const url = new URL(`${API_URL}/misas/${id}`);
+        // Support viewing private misas via share token if present in URL
+        const shareToken = Astro.url.searchParams.get("share_token");
+        if (shareToken) url.searchParams.append("share_token", shareToken);
+
+        const [misaRes, momentsRes] = await Promise.all([
+            fetch(url.toString(), { headers }),
+            getMoments(),
+        ]);
+
+        if (misaRes.ok) {
+            misa = await misaRes.json();
+            // Sort songs by id or moment order if needed, but usually Prisma returns them ordered or we filter by moment
+        } else {
+            error = "No se encontró la misa.";
+        }
+
+        if (momentsRes.success && momentsRes.data) {
+            moments = momentsRes.data;
+        }
+    } catch (e) {
+        error = "Error de conexión.";
+        console.error(e);
+    }
+}
+---
+
+<Layout title={misa ? `${misa.title} - Modo Lectura` : "Error"}>
+    <div class="max-w-3xl mx-auto px-4 py-8">
+        {
+            error ? (
+                <div class="text-center">
+                    <h1 class="text-2xl font-bold text-red-500 mb-4">
+                        {error}
+                    </h1>
+                    <a href="/misas" class="text-accent-main hover:underline">
+                        Volver a Misas
+                    </a>
+                </div>
+            ) : (
+                <div>
+                    <div class="mb-8 border-b border-white/10 pb-4 flex justify-between items-end">
+                        <div>
+                            <h1 class="text-3xl font-bold text-text-main">
+                                {misa.title}
+                            </h1>
+                            <p class="text-text-secondary mt-1">Modo Lectura</p>
+                        </div>
+                        <a
+                            href={`/misas/${id}${Astro.url.search}`}
+                            class="text-sm bg-bg-secondary px-4 py-2 rounded hover:bg-white/10 transition-colors"
+                        >
+                            Volver a Edición
+                        </a>
+                    </div>
+
+                    <div class="space-y-16">
+                        {moments.map((moment) => {
+                            const momentSongs = misa.misaSongs.filter(
+                                (ms) => ms.momentId === moment.id,
+                            );
+                            if (momentSongs.length === 0) return null;
+
+                            return (
+                                <section>
+                                    <h2 class="text-xl font-bold text-accent-main mb-6 uppercase tracking-wider border-l-4 border-accent-main pl-3">
+                                        {moment.nombre}
+                                    </h2>
+                                    <div class="space-y-12">
+                                        {momentSongs.map((ms) => (
+                                            <article class="bg-bg-secondary/30 rounded-xl p-6 border border-white/5">
+                                                <div class="mb-4">
+                                                    <HeaderLyric
+                                                        title={ms.song.title}
+                                                        artist={ms.song.artist}
+                                                        tone={
+                                                            ms.key ||
+                                                            ms.song.key
+                                                        }
+                                                    />
+                                                </div>
+                                                <SongView
+                                                    client:visible
+                                                    initialContent={
+                                                        ms.song.content
+                                                    }
+                                                    initialKey={
+                                                        ms.key || ms.song.key
+                                                    }
+                                                    originalKey={ms.song.key}
+                                                />
+                                            </article>
+                                        ))}
+                                    </div>
+                                </section>
+                            );
+                        })}
+                    </div>
+                </div>
+            )
+        }
+    </div>
+</Layout>

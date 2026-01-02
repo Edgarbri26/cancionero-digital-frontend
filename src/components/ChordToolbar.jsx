@@ -10,17 +10,17 @@ export default function ChordToolbar({ onTranspose, onInsertChord }) {
                     type="button"
                     onClick={() => onTranspose(-1)}
                     className="px-3 py-1 text-sm font-bold text-white bg-red-500/80 hover:bg-red-600 rounded transition-colors"
-                    title="Bajar 1 semitono"
+                    title="Bajar medio tono"
                 >
-                    -1 Tono
+                    - ½ Tono
                 </button>
                 <button
                     type="button"
                     onClick={() => onTranspose(1)}
                     className="px-3 py-1 text-sm font-bold text-white bg-green-500/80 hover:bg-green-600 rounded transition-colors"
-                    title="Subir 1 semitono"
+                    title="Subir medio tono"
                 >
-                    +1 Tono
+                    + ½ Tono
                 </button>
             </div>
 

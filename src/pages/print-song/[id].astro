@@ -1,0 +1,135 @@
+---
+import SongView from "../../components/SongView.jsx";
+import "../../styles/global.css";
+
+const { id } = Astro.params;
+const API_URL = import.meta.env.PUBLIC_API_URL || "http://localhost:3000/api";
+
+let song = null;
+let error = null;
+let displayTone = null;
+
+if (id) {
+    try {
+        const res = await fetch(`${API_URL}/songs/${id}`);
+        if (res.ok) {
+            song = await res.json();
+             // Determine tone
+            const toneParam = Astro.url.searchParams.get("tone");
+            displayTone = toneParam || song.key;
+        } else {
+            error = "Canción no encontrada";
+        }
+    } catch (e) {
+        console.error(e);
+        error = "Error de conexión";
+    }
+} else {
+    return Astro.redirect("/");
+}
+---
+
+<html lang="es">
+    <head>
+        <meta charset="UTF-8" />
+        <title>{song ? `${song.title} - Imprimir` : "Error"}</title>
+         <style is:global>
+            /* Reset básico para impresión */
+            body {
+                background: white !important;
+                color: black !important;
+                font-family: sans-serif;
+                margin: 0;
+                padding: 40px;
+            }
+            .print-container {
+                max-width: 800px;
+                margin: 0 auto;
+            }
+             /* Ocultar elementos no deseados */
+            nav, footer, .no-print {
+                display: none !important;
+            }
+
+            /* Estilos del encabezado simple */
+            h1 { 
+                font-size: 28pt; 
+                margin-bottom: 0.1rem; 
+                line-height: 1.2;
+            }
+            h2 { 
+                font-size: 14pt; 
+                color: #666 !important; 
+                margin-top: 0; 
+                margin-bottom: 1.5rem; 
+                font-weight: normal;
+            }
+            .meta { 
+                font-size: 11pt; 
+                color: #444 !important; 
+                margin-bottom: 2rem; 
+                border-bottom: 2px solid #eee; 
+                padding-bottom: 1rem;
+                display: flex;
+                gap: 20px;
+            }
+            .badge {
+                border: 1px solid #ccc;
+                padding: 2px 8px;
+                border-radius: 4px;
+                font-weight: bold;
+            }
+
+            /* Forzar el color de acento para impresión */
+            .text-accent-main {
+                color: #f97316 !important; /* Aproximación al naranja usado, o usar variable CSS si funciona */
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            
+            /* Asegurar que las letras sean negras */
+            p, span, div {
+                color: black;
+            }
+            /* Pero los acordes (que suelen ser span con clase) deben mantener su color si tienen la clase accent */
+            span.text-accent-main {
+                color: #f97316 !important;
+            }
+        </style>
+    </head>
+    <body class="bg-white">
+        {error ? (
+            <div class="print-container"><h1>{error}</h1></div>
+        ) : (
+            <div class="print-container">
+                <div class="flex items-center gap-4 mb-6 border-b pb-4">
+                     <img src="/ShortLogo.svg" alt="Cancionero Digital" class="h-12" />
+                </div>
+
+                <h1 class="text-accent-main">{song.title}</h1>
+                <h2>{song.artist}</h2>
+                
+                <div class="meta">
+                    <span><strong>Tono:</strong> <span class="badge">{displayTone}</span></span>
+                    {displayTone !== song.key && <span>(Original: {song.key})</span>}
+                    <span><strong>Categoría:</strong> {song.category?.name || "General"}</span>
+                </div>
+
+                <div class="song-content">
+                    <SongView 
+                        client:load 
+                        initialContent={song.content} 
+                        initialKey={displayTone} 
+                        originalKey={song.key} 
+                    />
+                </div>
+
+                <script>
+                    window.onload = () => {
+                        window.print();
+                    }
+                </script>
+            </div>
+        )}
+    </body>
+</html>

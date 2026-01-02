@@ -6,6 +6,7 @@ export default function ChordEditor({ name = "content", initialContent = "" }) {
     // Estado inicial vacío o con instrucciones
     const [content, setContent] = useState(initialContent);
     const [currentKey, setCurrentKey] = useState("C");
+    const keyRef = useRef("C"); // Ref para acceso síncrono y evitar doble transposición
     const textareaRef = useRef(null);
 
     const commonChords = ['C', 'D', 'E', 'F', 'G', 'A', 'B', 'Cm', 'Dm', 'Em', 'Am', 'Bm'];
@@ -13,13 +14,19 @@ export default function ChordEditor({ name = "content", initialContent = "" }) {
     useEffect(() => {
         const handleKeyChange = (e) => {
             const newKey = e.detail.key;
-            setContent(prevContent => transposeText(prevContent, currentKey, newKey));
-            setCurrentKey(newKey);
+            // Usamos keyRef.current para saber la tonalidad ACTUAL real (incluso si se acabó de cambiar localmente)
+            const fromKey = keyRef.current;
+
+            if (fromKey !== newKey) {
+                setContent(prevContent => transposeText(prevContent, fromKey, newKey));
+                setCurrentKey(newKey);
+                keyRef.current = newKey; // Sincronizamos ref
+            }
         };
 
         window.addEventListener('song-key-change', handleKeyChange);
         return () => window.removeEventListener('song-key-change', handleKeyChange);
-    }, [currentKey]);
+    }, []); // Ya no depende de currentKey porque usamos ref
 
     const addChord = (chordName) => {
         const textarea = textareaRef.current;
@@ -46,11 +53,16 @@ export default function ChordEditor({ name = "content", initialContent = "" }) {
         });
         setContent(newContent);
 
-        // Calcular nueva tonalidad y avisar
-        const nextKey = transposeChord(currentKey, semitones);
-        setCurrentKey(nextKey); // Actualizamos estado local
+        // Calcular nueva tonalidad
+        const nextKey = transposeChord(keyRef.current, semitones);
 
-        // Despachamos evento para que escuchen los padres (Astro)
+        // Actualizamos Refs y Estado INMEDIATAMENTE antes de despachar el evento
+        keyRef.current = nextKey;
+        setCurrentKey(nextKey);
+
+        // Despachamos evento. 
+        // Cuando el evento 'song-key-change' regrese (eco), handleKeyChange verá que keyRef.current === nextKey
+        // y NO hará una segunda transposición.
         window.dispatchEvent(new CustomEvent('editor-key-change', {
             detail: { key: nextKey }
         }));

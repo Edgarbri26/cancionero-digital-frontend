@@ -2,16 +2,17 @@ import React, { useState, useEffect } from 'react';
 import SongLine from './SongLine';
 import { transposeText } from '../utils/music';
 
-export default function SongView({ initialContent, initialKey = 'C' }) {
-    const [content, setContent] = useState(initialContent);
-    const [currentKey, setCurrentKey] = useState(initialKey);
+export default function SongView({ initialContent, initialKey = 'C', originalKey = 'C' }) {
+    const [content, setContent] = useState(() => {
+        // If initialKey (target) is different from originalKey (source), transpose immediately
+        if (initialKey && originalKey && initialKey !== originalKey) {
+            return transposeText(initialContent, originalKey, initialKey);
+        }
+        return initialContent;
+    });
+    const [currentKey, setCurrentKey] = useState(initialKey || originalKey);
 
     useEffect(() => {
-        const handleTranspose = (e) => {
-            const semitones = e.detail.semitones;
-            setContent(prev => transposeText(prev, currentKey, transposeKey(currentKey, semitones)));
-            setCurrentKey(prev => transposeKey(prev, semitones));
-        };
 
         // Helper interno simple para calcular la nueva nota clave
         // Nota: music.js tiene transposeChord, pero aquí necesitamos mover solo el Key un paso.

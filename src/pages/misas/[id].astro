@@ -14,16 +14,30 @@ let misa = null;
 let error = null;
 let moments: Moment[] = [];
 let token = Astro.cookies.get("token")?.value;
+let editToken = Astro.url.searchParams.get("edit_token");
 
 if (id) {
     try {
+        const headers: HeadersInit = {};
+        if (token) headers["Authorization"] = `Bearer ${token}`;
+
+        // Check for share token in query params (client-side nav might pass it, but server-side initial load relies on cookies or URL param)
+        const url = new URL(`${API_URL}/misas/${id}`);
+        // If there's a token query param in the current URL, pass it to the API
+        const shareToken = Astro.url.searchParams.get("share_token");
+        if (shareToken) url.searchParams.append("share_token", shareToken);
+
+        if (editToken) url.searchParams.append("edit_token", editToken);
+
         const [misaRes, momentsRes] = await Promise.all([
-            fetch(`${API_URL}/misas/${id}`),
+            fetch(url.toString(), { headers }),
             getMoments(),
         ]);
 
         if (misaRes.ok) {
             misa = await misaRes.json();
+            // Fallback: If backend is stale (missing canEdit), trust isOwner.
+            misa.canEdit = misa.canEdit || misa.isOwner;
         } else {
             error = "No se encontró la misa.";
         }
@@ -50,7 +64,11 @@ const formatDate = (dateString: string) => {
 <Layout
     title={misa ? `${misa.title} - CancioneroDigital` : "Misa no encontrada"}
 >
-    <main class="max-w-4xl mx-auto p-4" data-token={token}>
+    <main
+        class="max-w-4xl mx-auto p-4"
+        data-token={token}
+        data-edit-token={editToken}
+    >
         {
             error ? (
                 <div class="text-center py-10">
@@ -74,9 +92,13 @@ const formatDate = (dateString: string) => {
                                     📅 {formatDate(misa.dateMisa)}
                                 </p>
                             </div>
-                            {token && (
-                                <div class="flex gap-2">
-                                    {misa.visibility === "PRIVATE" && (
+                            <div class="flex gap-2">
+                                {misa.visibility === "PRIVATE" &&
+                                    (misa.isOwner ||
+                                        token ||
+                                        Astro.url.searchParams.get(
+                                            "share_token",
+                                        )) && (
                                         <button
                                             id="copyShareLinkBtn"
                                             data-share-token={misa.shareToken}
@@ -96,17 +118,65 @@ const formatDate = (dateString: string) => {
                                                 <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
                                                 <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
                                             </svg>
-                                            Copiar Link
+                                            Link
                                         </button>
                                     )}
+                                {misa.isOwner && (
+                                    <button
+                                        id="copyEditorLinkBtn"
+                                        data-edit-token={misa.editToken}
+                                        class="text-xs bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 px-3 py-1 rounded hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors flex items-center gap-1"
+                                    >
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            width="12"
+                                            height="12"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            stroke-width="2"
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                        >
+                                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                        </svg>
+                                        Link Editor
+                                    </button>
+                                )}
+                                <a
+                                    href={`/misas/view/${misa.id}${Astro.url.search}`}
+                                    class="text-xs bg-accent-main/10 text-accent-main px-3 py-1 rounded hover:bg-accent-main/20 transition-colors flex items-center gap-1"
+                                    title="Modo Lectura"
+                                >
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="12"
+                                        height="12"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        class="lucide lucide-book-open"
+                                    >
+                                        <>
+                                            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+                                            <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+                                        </>
+                                    </svg>
+                                    Lectura
+                                </a>
+                                {misa.canEdit && (
                                     <button
                                         id="editMisaBtn"
                                         class="text-xs bg-gray-200 dark:bg-gray-700 px-3 py-1 rounded hover:bg-gray-300 transition-colors"
                                     >
                                         Editar Info
                                     </button>
-                                </div>
-                            )}
+                                )}
+                            </div>
                         </div>
                     </div>
 
@@ -126,7 +196,7 @@ const formatDate = (dateString: string) => {
                                         {momentSongs.map((ms: any) => (
                                             <div class="flex items-center gap-1 group">
                                                 <a
-                                                    href={`/songs/${ms.song.id}`}
+                                                    href={`/songs/${ms.song.id}?tone=${encodeURIComponent(ms.key || ms.song.key)}`}
                                                     class="text-sm text-white bg-accent-main/30 border-2 border-accent-main
                                                     rounded-full px-4 py-2 text-center font-medium hover:text-white hover:bg-accent-main transition flex items-center gap-2"
                                                 >
@@ -167,7 +237,7 @@ const formatDate = (dateString: string) => {
                                             </div>
                                         ))}
 
-                                        {token && (
+                                        {misa.isOwner && (
                                             <button
                                                 data-moment-id={moment.id}
                                                 class="add-song-btn text-sm h-10 w-10 bg-accent-main text-white font-bold rounded-lg hover:saturate-200 transition-transform transform active:scale-95 flex items-center justify-center"
@@ -191,12 +261,13 @@ const formatDate = (dateString: string) => {
                         {/* Aqui podriamos poner un boton para Editar Misa o Agregar Canciones */}
                     </div>
 
-                    {token ? (
+                    {misa.canEdit ? (
                         <MisaSongManager
                             client:load
                             misaId={misa.id}
                             moments={moments}
                             token={token}
+                            editToken={editToken}
                         />
                     ) : (
                         <div class="mt-8 text-center p-6 bg-gray-50 dark:bg-gray-800 rounded-xl border border-dashed border-gray-300 dark:border-gray-700">
@@ -223,33 +294,31 @@ const formatDate = (dateString: string) => {
 </Layout>
 
 <script>
-    import { removeSongFromMisa } from "../../services/misas";
-    declare global {
-        interface Window {
-            openAddSongModal: (momentId: string | null) => void;
-        }
-    }
+    import { removeSongFromMisa, updateMisa } from "../../services/misas";
+    import Swal from "sweetalert2";
+
+    // Configuración común para SweetAlert en modo oscuro
+    const swalDark = {
+        background: "#1f2937",
+        color: "#fff",
+        confirmButtonColor: "#f97316",
+        cancelButtonColor: "#4b5563",
+    };
 
     document.addEventListener("DOMContentLoaded", () => {
         const buttons = document.querySelectorAll(".add-song-btn");
         buttons.forEach((btn) => {
-            btn.addEventListener("click", (e) => {
+            btn.addEventListener("click", () => {
                 const momentId = btn.getAttribute("data-moment-id");
-
-                console.log(
-                    "Button clicked, calling global function for:",
-                    momentId,
-                );
-
-                if (window.openAddSongModal) {
-                    window.openAddSongModal(momentId);
+                if ((window as any).openAddSongModal) {
+                    (window as any).openAddSongModal(momentId);
                 } else {
-                    console.error(
-                        "MisaSongManager is not ready or not loaded.",
-                    );
-                    alert(
-                        "Error: El gestor de canciones no está cargado. Intenta recargar la página.",
-                    );
+                    Swal.fire({
+                        icon: "error",
+                        title: "Error",
+                        text: "El gestor de canciones no está cargado. Intenta recargar la página.",
+                        ...swalDark,
+                    });
                 }
             });
         });
@@ -260,10 +329,19 @@ const formatDate = (dateString: string) => {
         deleteButtons.forEach((btn) => {
             btn.addEventListener("click", async (e) => {
                 e.preventDefault();
-                // e.stopPropagation(); // Avoid triggering parent clicks if any
 
-                if (!confirm("¿Seguro que quieres eliminar esta canción?"))
-                    return;
+                const result = await Swal.fire({
+                    title: "¿Eliminar canción?",
+                    text: "No podrás deshacer esta acción",
+                    icon: "warning",
+                    showCancelButton: true,
+                    confirmButtonText: "Sí, eliminar",
+                    cancelButtonText: "Cancelar",
+                    reverseButtons: true,
+                    ...swalDark,
+                });
+
+                if (!result.isConfirmed) return;
 
                 const misaId = Number(btn.getAttribute("data-misa-id"));
                 const misaSongId = Number(
@@ -273,46 +351,110 @@ const formatDate = (dateString: string) => {
                 const token = document
                     .querySelector("main")
                     ?.getAttribute("data-token");
+                const editToken = document
+                    .querySelector("main")
+                    ?.getAttribute("data-edit-token");
 
-                if (misaId && misaSongId && token) {
+                if (misaId && misaSongId && (token || editToken)) {
+                    // Mostrar loading
+                    Swal.fire({
+                        title: "Eliminando...",
+                        didOpen: () => {
+                            Swal.showLoading();
+                        },
+                        background: "#1f2937",
+                        color: "#fff",
+                        allowOutsideClick: false,
+                    });
+
                     try {
                         const res = await removeSongFromMisa(
                             misaId,
                             misaSongId,
-                            token,
+                            token || undefined,
+                            editToken || undefined,
                         );
                         if (res.success) {
                             window.location.reload();
                         } else {
-                            alert(res.error || "Error al eliminar.");
+                            Swal.fire({
+                                icon: "error",
+                                title: "Error",
+                                text: res.error || "Error al eliminar.",
+                                ...swalDark,
+                            });
                         }
                     } catch (error) {
-                        console.error(error);
-                        alert("Error de conexión.");
+                        Swal.fire({
+                            icon: "error",
+                            title: "Error",
+                            text: "Error de conexión.",
+                            ...swalDark,
+                        });
                     }
                 }
             });
         });
 
-        // Copy Share Link Logic
+        const copyToClipboard = (
+            text: string,
+            successTitle: string,
+            successText: string,
+        ) => {
+            navigator.clipboard
+                .writeText(text)
+                .then(() => {
+                    Swal.fire({
+                        icon: "success",
+                        title: successTitle,
+                        text: successText,
+                        toast: true,
+                        position: "top-end",
+                        showConfirmButton: false,
+                        timer: 3000,
+                        background: "#1f2937",
+                        color: "#fff",
+                    });
+                })
+                .catch((err) => {
+                    console.error("Error al copiar", err);
+                    Swal.fire({
+                        icon: "error",
+                        title: "Error",
+                        text: "No se pudo copiar el enlace.",
+                        ...swalDark,
+                    });
+                });
+        };
+
         const copyShareLinkBtn = document.getElementById("copyShareLinkBtn");
         if (copyShareLinkBtn) {
             copyShareLinkBtn.addEventListener("click", () => {
                 const shareToken =
                     copyShareLinkBtn.getAttribute("data-share-token");
                 if (shareToken) {
-                    const url = `${window.location.origin}${window.location.pathname}?token=${shareToken}`;
-                    navigator.clipboard
-                        .writeText(url)
-                        .then(() => {
-                            alert(
-                                "Enlace copiado al portapapeles. ¡Compártelo con quien quieras!",
-                            );
-                        })
-                        .catch((err) => {
-                            console.error("Error al copiar enlace", err);
-                            alert("No se pudo copiar el enlace.");
-                        });
+                    const url = `${window.location.origin}${window.location.pathname}?share_token=${shareToken}`;
+                    copyToClipboard(
+                        url,
+                        "¡Enlace copiado!",
+                        "Compártelo con quien quieras.",
+                    );
+                }
+            });
+        }
+
+        const copyEditorLinkBtn = document.getElementById("copyEditorLinkBtn");
+        if (copyEditorLinkBtn) {
+            copyEditorLinkBtn.addEventListener("click", () => {
+                const editToken =
+                    copyEditorLinkBtn.getAttribute("data-edit-token");
+                if (editToken) {
+                    const url = `${window.location.origin}${window.location.pathname}?edit_token=${editToken}`;
+                    copyToClipboard(
+                        url,
+                        "¡Enlace de Editor copiado!",
+                        "Ten cuidado con quién lo compartes.",
+                    );
                 }
             });
         }
@@ -322,7 +464,9 @@ const formatDate = (dateString: string) => {
         const editMisaModal = document.getElementById("editMisaModal");
         const closeEditMisaModal =
             document.getElementById("closeEditMisaModal");
-        const editMisaForm = document.getElementById("editMisaForm");
+        const editMisaForm = document.getElementById(
+            "editMisaForm",
+        ) as HTMLFormElement;
 
         if (editMisaBtn && editMisaModal && closeEditMisaModal) {
             editMisaBtn.addEventListener("click", () => {
@@ -343,36 +487,81 @@ const formatDate = (dateString: string) => {
         if (editMisaForm) {
             editMisaForm.addEventListener("submit", async (e) => {
                 e.preventDefault();
-                const formData = new FormData(editMisaForm as HTMLFormElement);
-                const title = formData.get("title") as string;
-                const dateMisa = formData.get("dateMisa") as string;
-                const visibility = formData.get("visibility") as string;
+                const formData = new FormData(editMisaForm);
+                const title = formData.get("title")?.toString() || "";
+                const dateMisa = formData.get("dateMisa")?.toString() || "";
+                const visibility = formData.get("visibility")?.toString() || "";
                 const misaId = editMisaForm.getAttribute("data-misa-id");
 
                 const token = document
                     .querySelector("main")
                     ?.getAttribute("data-token");
+                const editToken = document
+                    .querySelector("main")
+                    ?.getAttribute("data-edit-token");
 
-                if (misaId && token) {
+                if (!misaId) return;
+
+                if (token || editToken) {
+                    // Loading button state
+                    const submitBtn = editMisaForm.querySelector(
+                        "button[type='submit']",
+                    );
+                    const originalText = submitBtn
+                        ? submitBtn.textContent
+                        : "Guardar";
+
+                    if (submitBtn) {
+                        submitBtn.setAttribute("disabled", "true");
+                        submitBtn.textContent = "Guardando...";
+                    }
+
                     try {
-                        const { updateMisa } =
-                            await import("../../services/misas");
                         const res = await updateMisa(
-                            Number(misaId),
+                            parseInt(misaId),
                             title,
                             dateMisa,
                             visibility,
-                            token,
+                            token || undefined,
+                            editToken || undefined,
                         );
 
                         if (res.success) {
-                            window.location.reload();
+                            Swal.fire({
+                                icon: "success",
+                                title: "¡Actualizado!",
+                                text: "Los datos de la misa se han guardado",
+                                timer: 1500,
+                                showConfirmButton: false,
+                                ...swalDark,
+                            }).then(() => {
+                                window.location.reload();
+                            });
                         } else {
-                            alert(res.error || "Error al actualizar la misa");
+                            Swal.fire({
+                                icon: "error",
+                                title: "Error",
+                                text: res.error || "Error al actualizar",
+                                ...swalDark,
+                            });
+
+                            if (submitBtn) {
+                                submitBtn.removeAttribute("disabled");
+                                submitBtn.textContent = originalText;
+                            }
                         }
                     } catch (error) {
                         console.error(error);
-                        alert("Error de conexión");
+                        Swal.fire({
+                            icon: "error",
+                            title: "Error",
+                            text: "Error de conexión",
+                            ...swalDark,
+                        });
+                        if (submitBtn) {
+                            submitBtn.removeAttribute("disabled");
+                            submitBtn.textContent = originalText;
+                        }
                     }
                 }
             });
