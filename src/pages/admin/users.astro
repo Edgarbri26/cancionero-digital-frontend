@@ -1,0 +1,298 @@
+---
+import AdminLayout from "../../layouts/AdminLayout.astro";
+
+const token = Astro.cookies.get("token")?.value;
+const API_URL = import.meta.env.PUBLIC_API_URL || "http://localhost:3000/api";
+
+let users = [];
+let error = null;
+
+try {
+    const res = await fetch(`${API_URL}/users`, {
+        headers: {
+            Cookie: `token=${token}`,
+        },
+    });
+    if (res.ok) {
+        users = await res.json();
+    } else {
+        // If 403/401, likely not admin
+        if (res.status === 403 || res.status === 401) {
+            return Astro.redirect("/");
+        }
+        error = "Error fetching users.";
+    }
+} catch (e) {
+    error = "Connection error.";
+}
+---
+
+<AdminLayout title="User Management">
+    <div class="flex justify-between items-center mb-6">
+        <h2 class="text-2xl font-bold">Usuarios</h2>
+        <button
+            id="openCreateModal"
+            class="bg-accent-main hover:bg-accent-secondary text-white px-4 py-2 rounded-lg font-medium transition-colors"
+        >
+            + Nuevo Usuario
+        </button>
+    </div>
+
+    {
+        error && (
+            <div class="bg-red-100 text-red-700 p-4 rounded-lg mb-4">
+                {error}
+            </div>
+        )
+    }
+
+    <div
+        class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden"
+    >
+        <table class="w-full text-left">
+            <thead
+                class="bg-gray-50 dark:bg-gray-700/50 text-gray-600 dark:text-gray-400 text-sm uppercase"
+            >
+                <tr>
+                    <th class="px-6 py-4 font-semibold">ID</th>
+                    <th class="px-6 py-4 font-semibold">Nombre</th>
+                    <th class="px-6 py-4 font-semibold">Email</th>
+                    <th class="px-6 py-4 font-semibold">Rol</th>
+                    <th class="px-6 py-4 font-semibold text-right">Acciones</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                {
+                    users.map((user: any) => (
+                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+                            <td class="px-6 py-4 text-gray-500">#{user.id}</td>
+                            <td class="px-6 py-4 font-medium">{user.name}</td>
+                            <td class="px-6 py-4 text-gray-500">
+                                {user.email}
+                            </td>
+                            <td class="px-6 py-4">
+                                <span
+                                    class={`px-2 py-1 rounded text-xs font-bold ${user.role?.name === "ADMIN" ? "bg-purple-100 text-purple-700" : "bg-green-100 text-green-700"}`}
+                                >
+                                    {user.role?.name || "USER"}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 text-right space-x-2">
+                                <button
+                                    class="text-blue-500 hover:text-blue-700 text-sm font-medium edit-btn"
+                                    data-user={JSON.stringify(user)}
+                                >
+                                    Editar
+                                </button>
+                                <button
+                                    class="text-red-500 hover:text-red-700 text-sm font-medium delete-btn"
+                                    data-id={user.id}
+                                >
+                                    Eliminar
+                                </button>
+                            </td>
+                        </tr>
+                    ))
+                }
+                {
+                    users.length === 0 && (
+                        <tr>
+                            <td
+                                colspan="5"
+                                class="px-6 py-8 text-center text-gray-500"
+                            >
+                                No hay usuarios registrados via API aún.
+                            </td>
+                        </tr>
+                    )
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Modals and Scripts would go here (e.g., using a client island or vanilla JS) -->
+    <div
+        id="userModal"
+        class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm"
+    >
+        <div
+            class="bg-white dark:bg-gray-800 w-full max-w-md rounded-xl shadow-2xl overflow-hidden"
+        >
+            <div
+                class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center"
+            >
+                <h3 id="modalTitle" class="text-lg font-bold">Nuevo Usuario</h3>
+                <button
+                    id="closeModal"
+                    class="text-gray-400 hover:text-gray-600">✕</button
+                >
+            </div>
+            <form id="userForm" class="p-6 space-y-4">
+                <input type="hidden" name="id" id="userId" />
+                <div>
+                    <label class="block text-sm font-medium mb-1">Nombre</label>
+                    <input
+                        type="text"
+                        name="name"
+                        required
+                        class="w-full bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-accent-main"
+                    />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Email</label>
+                    <input
+                        type="email"
+                        name="email"
+                        required
+                        class="w-full bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-accent-main"
+                    />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1"
+                        >Password</label
+                    >
+                    <input
+                        type="password"
+                        name="password"
+                        minlength="6"
+                        class="w-full bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-accent-main"
+                        placeholder="Dejar en blanco para no cambiar"
+                    />
+                    <p class="text-xs text-gray-500 mt-1">
+                        Requerido para nuevos usuarios.
+                    </p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Rol</label>
+                    <select
+                        name="roleId"
+                        class="w-full bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-accent-main"
+                    >
+                        <option value="1">ADMIN</option>
+                        <option value="2" selected>USER</option>
+                    </select>
+                </div>
+                <div class="pt-4 flex justify-end">
+                    <button
+                        type="submit"
+                        class="bg-accent-main text-white px-4 py-2 rounded-lg font-medium hover:bg-accent-secondary"
+                        >Guardar</button
+                    >
+                </div>
+            </form>
+        </div>
+    </div>
+</AdminLayout>
+
+<div id="admin-config" data-api-url={API_URL} class="hidden"></div>
+
+<script>
+    const configDiv = document.getElementById("admin-config");
+    const API_URL =
+        configDiv?.getAttribute("data-api-url") || "http://localhost:3000/api";
+
+    const modal = document.getElementById("userModal");
+    const form = document.getElementById("userForm") as HTMLFormElement;
+    const modalTitle = document.getElementById("modalTitle");
+    const openBtn = document.getElementById("openCreateModal");
+    const closeBtn = document.getElementById("closeModal");
+
+    // Helper to toggle modal
+    const toggleModal = (show: boolean) => {
+        if (show) modal?.classList.remove("hidden");
+        else modal?.classList.add("hidden");
+    };
+
+    openBtn?.addEventListener("click", () => {
+        form.reset();
+        document.getElementById("userId")?.setAttribute("value", "");
+        if (modalTitle) modalTitle.textContent = "Nuevo Usuario";
+        toggleModal(true);
+    });
+
+    closeBtn?.addEventListener("click", () => toggleModal(false));
+
+    // Edit buttons
+    document.querySelectorAll(".edit-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+            const userData = JSON.parse(btn.getAttribute("data-user") || "{}");
+            if (modalTitle) modalTitle.textContent = "Editar Usuario";
+
+            // Fill form
+            (
+                document.querySelector('[name="name"]') as HTMLInputElement
+            ).value = userData.name;
+            (
+                document.querySelector('[name="email"]') as HTMLInputElement
+            ).value = userData.email;
+            (
+                document.querySelector('[name="roleId"]') as HTMLSelectElement
+            ).value = String(userData.roleId);
+            document
+                .getElementById("userId")
+                ?.setAttribute("value", userData.id);
+
+            toggleModal(true);
+        });
+    });
+
+    // Delete buttons
+    document.querySelectorAll(".delete-btn").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+            if (!confirm("¿Eliminar usuario irrevocablemente?")) return;
+
+            const id = btn.getAttribute("data-id");
+            try {
+                const getCookie = (name: string) => {
+                    const value = `; ${document.cookie}`;
+                    const parts = value.split(`; ${name}=`);
+                    if (parts.length === 2)
+                        return parts.pop()?.split(";").shift();
+                };
+
+                const res = await fetch(`${API_URL}/users/${id}`, {
+                    method: "DELETE",
+                    credentials: "include",
+                });
+
+                if (res.ok) window.location.reload();
+                else alert("Error al eliminar");
+            } catch (e) {
+                alert("Error de conexión");
+            }
+        });
+    });
+
+    // Form Submit
+    form?.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const formData = new FormData(form);
+        const id = formData.get("id");
+        const isEdit = !!id;
+
+        const data: any = {};
+        formData.forEach((value, key) => (data[key] = value));
+
+        if (!data.password) delete data.password; // Don't send empty password on edit
+
+        const endpoint = isEdit ? `${API_URL}/users/${id}` : `${API_URL}/users`;
+        const method = isEdit ? "PUT" : "POST";
+
+        try {
+            const res = await fetch(endpoint, {
+                method,
+                headers: { "Content-Type": "application/json" },
+                credentials: "include", // Important for cookie
+                body: JSON.stringify(data),
+            });
+
+            if (res.ok) window.location.reload();
+            else {
+                const err = await res.json();
+                alert(err.error || "Error al guardar");
+            }
+        } catch (e) {
+            alert("Error de conexión");
+        }
+    });
+</script>

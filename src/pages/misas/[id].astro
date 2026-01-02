@@ -75,9 +75,37 @@ const formatDate = (dateString: string) => {
                                 </p>
                             </div>
                             {token && (
-                                <button class="text-xs bg-gray-200 dark:bg-gray-700 px-3 py-1 rounded hover:bg-gray-300 transition-colors">
-                                    Editar Info
-                                </button>
+                                <div class="flex gap-2">
+                                    {misa.visibility === "PRIVATE" && (
+                                        <button
+                                            id="copyShareLinkBtn"
+                                            data-share-token={misa.shareToken}
+                                            class="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 px-3 py-1 rounded hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors flex items-center gap-1"
+                                        >
+                                            <svg
+                                                xmlns="http://www.w3.org/2000/svg"
+                                                width="12"
+                                                height="12"
+                                                viewBox="0 0 24 24"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                stroke-width="2"
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                            >
+                                                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                                                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                                            </svg>
+                                            Copiar Link
+                                        </button>
+                                    )}
+                                    <button
+                                        id="editMisaBtn"
+                                        class="text-xs bg-gray-200 dark:bg-gray-700 px-3 py-1 rounded hover:bg-gray-300 transition-colors"
+                                    >
+                                        Editar Info
+                                    </button>
+                                </div>
                             )}
                         </div>
                     </div>
@@ -269,5 +297,175 @@ const formatDate = (dateString: string) => {
                 }
             });
         });
+
+        // Copy Share Link Logic
+        const copyShareLinkBtn = document.getElementById("copyShareLinkBtn");
+        if (copyShareLinkBtn) {
+            copyShareLinkBtn.addEventListener("click", () => {
+                const shareToken =
+                    copyShareLinkBtn.getAttribute("data-share-token");
+                if (shareToken) {
+                    const url = `${window.location.origin}${window.location.pathname}?token=${shareToken}`;
+                    navigator.clipboard
+                        .writeText(url)
+                        .then(() => {
+                            alert(
+                                "Enlace copiado al portapapeles. ¡Compártelo con quien quieras!",
+                            );
+                        })
+                        .catch((err) => {
+                            console.error("Error al copiar enlace", err);
+                            alert("No se pudo copiar el enlace.");
+                        });
+                }
+            });
+        }
+
+        // Edit Misa Logic
+        const editMisaBtn = document.getElementById("editMisaBtn");
+        const editMisaModal = document.getElementById("editMisaModal");
+        const closeEditMisaModal =
+            document.getElementById("closeEditMisaModal");
+        const editMisaForm = document.getElementById("editMisaForm");
+
+        if (editMisaBtn && editMisaModal && closeEditMisaModal) {
+            editMisaBtn.addEventListener("click", () => {
+                editMisaModal.classList.remove("hidden");
+            });
+
+            closeEditMisaModal.addEventListener("click", () => {
+                editMisaModal.classList.add("hidden");
+            });
+
+            editMisaModal.addEventListener("click", (e) => {
+                if (e.target === editMisaModal) {
+                    editMisaModal.classList.add("hidden");
+                }
+            });
+        }
+
+        if (editMisaForm) {
+            editMisaForm.addEventListener("submit", async (e) => {
+                e.preventDefault();
+                const formData = new FormData(editMisaForm as HTMLFormElement);
+                const title = formData.get("title") as string;
+                const dateMisa = formData.get("dateMisa") as string;
+                const visibility = formData.get("visibility") as string;
+                const misaId = editMisaForm.getAttribute("data-misa-id");
+
+                const getCookie = (name: string) => {
+                    const value = `; ${document.cookie}`;
+                    const parts = value.split(`; ${name}=`);
+                    if (parts.length === 2)
+                        return parts.pop()?.split(";").shift();
+                };
+                const token = getCookie("token");
+
+                if (misaId && token) {
+                    try {
+                        const { updateMisa } =
+                            await import("../../services/misas");
+                        const res = await updateMisa(
+                            Number(misaId),
+                            title,
+                            dateMisa,
+                            visibility,
+                            token,
+                        );
+
+                        if (res.success) {
+                            window.location.reload();
+                        } else {
+                            alert(res.error || "Error al actualizar la misa");
+                        }
+                    } catch (error) {
+                        console.error(error);
+                        alert("Error de conexión");
+                    }
+                }
+            });
+        }
     });
 </script>
+
+<!-- Edit Misa Modal -->
+<div
+    id="editMisaModal"
+    class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+>
+    <div
+        class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-lg border border-gray-200 dark:border-gray-700 mx-4 overflow-hidden"
+    >
+        <div
+            class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center"
+        >
+            <h3 class="text-xl font-bold text-gray-800 dark:text-gray-100">
+                Editar Misa
+            </h3>
+            <button
+                id="closeEditMisaModal"
+                class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+                >✕</button
+            >
+        </div>
+        <form id="editMisaForm" class="p-6 space-y-4" data-misa-id={id}>
+            <div>
+                <label
+                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                    >Título</label
+                >
+                <input
+                    type="text"
+                    name="title"
+                    value={misa?.title}
+                    required
+                    class="w-full bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 text-gray-900 dark:text-white focus:ring-2 focus:ring-accent-main outline-none"
+                />
+            </div>
+            <div>
+                <label
+                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                    >Fecha</label
+                >
+                <input
+                    type="datetime-local"
+                    name="dateMisa"
+                    value={misa?.dateMisa
+                        ? new Date(misa.dateMisa).toISOString().slice(0, 16)
+                        : ""}
+                    required
+                    class="w-full bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 text-gray-900 dark:text-white focus:ring-2 focus:ring-accent-main outline-none"
+                />
+            </div>
+            <div>
+                <label
+                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                    >Visibilidad</label
+                >
+                <select
+                    name="visibility"
+                    id="visibilitySelect"
+                    class="w-full bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 text-gray-900 dark:text-white focus:ring-2 focus:ring-accent-main outline-none"
+                >
+                    <option
+                        value="PUBLIC"
+                        selected={misa?.visibility === "PUBLIC"}>Pública</option
+                    >
+                    <option
+                        value="PRIVATE"
+                        selected={misa?.visibility === "PRIVATE"}
+                        >Privada (Solo tú y enlace)</option
+                    >
+                </select>
+            </div>
+            <div class="flex justify-end pt-4">
+                <button
+                    type="submit"
+                    class="bg-accent-main hover:bg-accent-main/90 text-white font-bold py-2 px-6 rounded-lg transition-transform transform active:scale-95"
+                >
+                    Guardar Cambios
+                </button>
+            </div>
+        </form>
+    </div>
+</div>

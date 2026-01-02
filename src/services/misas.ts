@@ -15,7 +15,7 @@ export const getMisas = async (): Promise<ServiceResponse<Misa[]>> => {
     }
 };
 
-export const createMisa = async (title: string, dateMisa: string, token?: string): Promise<ServiceResponse<Misa>> => {
+export const createMisa = async (title: string, dateMisa: string, visibility: string = "PUBLIC", token?: string): Promise<ServiceResponse<Misa>> => {
     try {
         const headers: HeadersInit = { "Content-Type": "application/json" };
         if (token) {
@@ -25,12 +25,40 @@ export const createMisa = async (title: string, dateMisa: string, token?: string
         const res = await fetch(`${API_URL}/misas`, {
             method: "POST",
             headers,
-            body: JSON.stringify({ title, dateMisa }),
+            credentials: "include",
+            body: JSON.stringify({ title, dateMisa, visibility }),
         });
 
         if (!res.ok) {
             const errData = await res.json();
             return { success: false, error: "Error al crear la misa.", data: errData };
+        }
+
+        const data = await res.json();
+        return { success: true, data };
+    } catch (e) {
+        console.error("Service exception:", e);
+        return { success: false, error: "Error de conexión." };
+    }
+};
+
+export const updateMisa = async (id: number, title: string, dateMisa: string, visibility: string, token?: string): Promise<ServiceResponse<Misa>> => {
+    try {
+        const headers: HeadersInit = { "Content-Type": "application/json" };
+        if (token) {
+            headers["Cookie"] = `token=${token}`;
+        }
+
+        const res = await fetch(`${API_URL}/misas/${id}`, {
+            method: "PUT",
+            headers,
+            credentials: "include",
+            body: JSON.stringify({ title, dateMisa, visibility }),
+        });
+
+        if (!res.ok) {
+            const errData = await res.json();
+            return { success: false, error: "Error al actualizar la misa.", data: errData };
         }
 
         const data = await res.json();

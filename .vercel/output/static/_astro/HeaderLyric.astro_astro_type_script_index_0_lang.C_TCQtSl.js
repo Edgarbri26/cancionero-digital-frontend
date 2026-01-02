@@ -1,1 +1,0 @@
-import{t as s}from"./music.CRsQeu5U.js";const e=document.getElementById("header-tone");window.addEventListener("song-transpose",n=>{if(!e)return;const t=n.detail.semitones,o=e.innerText.trim(),r=s(o,t);e.innerText=r});

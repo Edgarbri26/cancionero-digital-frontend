@@ -293,4 +293,11 @@ if (Astro.request.method === "POST") {
         });
         window.dispatchEvent(event);
     });
+
+    // Escuchar cambios desde el editor de acordes
+    window.addEventListener("editor-key-change", (e: any) => {
+        if (keySelect && e.detail && e.detail.key) {
+            keySelect.value = e.detail.key;
+        }
+    });
 </script>

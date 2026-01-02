@@ -206,3 +206,27 @@ if (Astro.request.method === "POST") {
         </main>
     </div>
 </Layout>
+
+<script>
+    const keySelect = document.getElementById("key") as HTMLSelectElement;
+
+    // Escuchar cambios desde el editor de acordes
+    window.addEventListener("editor-key-change", (e: any) => {
+        if (keySelect && e.detail && e.detail.key) {
+            keySelect.value = e.detail.key;
+            // Opcional: Disparar evento change si hay lógica dependiente
+            keySelect.dispatchEvent(new Event("change"));
+        }
+    });
+
+    // Escuchar cambios del select para avisar al editor (bidireccional)
+    keySelect?.addEventListener("change", (e) => {
+        const target = e.target as HTMLSelectElement;
+        const newKey = target.value;
+        window.dispatchEvent(
+            new CustomEvent("song-key-change", {
+                detail: { key: newKey },
+            }),
+        );
+    });
+</script>

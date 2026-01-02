@@ -1,1 +1,0 @@
-import{c as n}from"./misas.Bzq5skMt.js";const e=document.getElementById("addMisaForm");e?.addEventListener("submit",async a=>{a.preventDefault();const t=new FormData(e),s=t.get("title"),r=t.get("dateMisa"),{success:o,error:i}=await n(s,r);o?window.location.href="/misas":alert(i||"Error al crear la misa")});
