@@ -3,6 +3,7 @@
 import Layout from "../../layouts/Layout.astro";
 import type { Category } from "../../types/category";
 import ChordEditor from "../../components/ChordEditor.jsx";
+import KeySelector from "../../components/KeySelector.astro";
 import "../../styles/global.css";
 import { updateSong } from "../../services/songs";
 
@@ -102,44 +103,12 @@ if (Astro.request.method === "POST") {
                             class="block text-sm font-medium text-text-secondary"
                             >Tono Principal</label
                         >
-                        <select
+                        <KeySelector
                             id="key"
                             name="key"
+                            value={song.key}
                             class="w-full bg-bg-secondary border border-white/10 rounded-lg p-3 text-text-main focus:outline-none focus:border-accent-main transition-colors appearance-none cursor-pointer"
-                        >
-                            {
-                                [
-                                    "C",
-                                    "Cm",
-                                    "C#",
-                                    "C#m",
-                                    "D",
-                                    "Dm",
-                                    "D#",
-                                    "D#m",
-                                    "E",
-                                    "Em",
-                                    "F",
-                                    "Fm",
-                                    "F#",
-                                    "F#m",
-                                    "G",
-                                    "Gm",
-                                    "G#",
-                                    "G#m",
-                                    "A",
-                                    "Am",
-                                    "A#",
-                                    "A#m",
-                                    "B",
-                                    "Bm",
-                                ].map((k) => (
-                                    <option value={k} selected={song.key === k}>
-                                        {k}
-                                    </option>
-                                ))
-                            }
-                        </select>
+                        />
                     </div>
                 </div>
 
@@ -198,6 +167,7 @@ if (Astro.request.method === "POST") {
                         client:only="react"
                         name="content"
                         initialContent={song.content}
+                        initialKey={song.key}
                     />
                     <div class="pt-4 flex justify-end">
                         <button

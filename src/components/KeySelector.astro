@@ -1,0 +1,52 @@
+---
+interface Props {
+    id?: string;
+    name?: string;
+    value?: string;
+    class?: string;
+}
+
+const {
+    id = "key",
+    name = "key",
+    value = "C",
+    class: className = "",
+} = Astro.props;
+
+const keys = [
+    "C",
+    "Cm",
+    "C#",
+    "C#m",
+    "D",
+    "Dm",
+    "D#",
+    "D#m",
+    "E",
+    "Em",
+    "F",
+    "Fm",
+    "F#",
+    "F#m",
+    "G",
+    "Gm",
+    "G#",
+    "G#m",
+    "A",
+    "Am",
+    "A#",
+    "A#m",
+    "B",
+    "Bm",
+];
+---
+
+<select id={id} name={name} class={className}>
+    {
+        keys.map((k) => (
+            <option value={k} selected={k === value}>
+                {k}
+            </option>
+        ))
+    }
+</select>

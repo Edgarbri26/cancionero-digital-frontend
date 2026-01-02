@@ -2,11 +2,11 @@ import React, { useState, useRef, useEffect } from 'react';
 import { transposeText, transposeChord } from '../utils/music';
 import ChordToolbar from './ChordToolbar';
 
-export default function ChordEditor({ name = "content", initialContent = "" }) {
+export default function ChordEditor({ name = "content", initialContent = "", initialKey = "C" }) {
     // Estado inicial vacío o con instrucciones
     const [content, setContent] = useState(initialContent);
-    const [currentKey, setCurrentKey] = useState("C");
-    const keyRef = useRef("C"); // Ref para acceso síncrono y evitar doble transposición
+    const [currentKey, setCurrentKey] = useState(initialKey);
+    const keyRef = useRef(initialKey); // Ref para acceso síncrono y evitar doble transposición
     const textareaRef = useRef(null);
 
     const commonChords = ['C', 'D', 'E', 'F', 'G', 'A', 'B', 'Cm', 'Dm', 'Em', 'Am', 'Bm'];
