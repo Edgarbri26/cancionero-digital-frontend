@@ -5,7 +5,7 @@ import vercel from '@astrojs/vercel/serverless'; // Importa el adaptador
 
 export default defineConfig({
   output: 'server', // O 'hybrid' si algunas páginas son estáticas
-  adapter: vercel(), 
+  adapter: vercel(),
   integrations: [react()],
   vite: {
     plugins: [tailwindcss()]
