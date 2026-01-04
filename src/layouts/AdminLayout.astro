@@ -56,6 +56,15 @@ import "../styles/global.css";
                     Users
                 </a>
                 <a
+                    href="/admin/songs"
+                    class={`flex items-center gap-3 px-4 py-2 text-sm font-medium rounded-lg ${Astro.url.pathname.includes("/admin/songs") ? "bg-accent-main/10 text-accent-main" : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"}`}
+                >
+                    <i
+                        class="fa-solid fa-music h-5 w-5 flex items-center justify-center"
+                    ></i>
+                    Canciones
+                </a>
+                <a
                     href="/admin/roles"
                     class={`flex items-center gap-3 px-4 py-2 text-sm font-medium rounded-lg ${Astro.url.pathname.includes("/admin/roles") ? "bg-accent-main/10 text-accent-main" : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"}`}
                 >

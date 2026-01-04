@@ -3,6 +3,7 @@
 import Layout from "../../layouts/Layout.astro";
 import Header from "../../components/Header.astro";
 import { getMisas } from "../../services/misas";
+import { sequence } from "astro:middleware";
 
 const token = Astro.cookies.get("token")?.value;
 const { success, data: misas } = await getMisas(token);
@@ -98,9 +99,23 @@ const formatDate = (dateString: string) => {
 
         {
             (!misas || misas.length === 0) && (
-                <p class="text-center text-gray-500">
-                    No hay misas registradas.
-                </p>
+                <section class="flex flex-col items-center justify-center h-full gap-3.5">
+                    <p class="text-center text-gray-500">
+                        No hay misas registradas.
+                    </p>
+
+                    {!token && (
+                        <p class="text-center text-gray-500">
+                            Inicia sesión para registrar misas.
+                            <a
+                                href="/login"
+                                class="text-blue-600 hover:text-blue-700"
+                            >
+                                Iniciar Sesión
+                            </a>
+                        </p>
+                    )}
+                </section>
             )
         }
     </main>

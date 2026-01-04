@@ -5,6 +5,7 @@ const token = Astro.cookies.get("token")?.value;
 const API_URL = import.meta.env.PUBLIC_API_URL || "http://localhost:3000/api";
 
 let users = [];
+let roles = [];
 let error = null;
 
 try {
@@ -21,6 +22,14 @@ try {
             return Astro.redirect("/");
         }
         error = "Error fetching users.";
+    }
+
+    // Fetch roles
+    const rolesRes = await fetch(`${API_URL}/roles`, {
+        headers: { Cookie: `token=${token}` },
+    });
+    if (rolesRes.ok) {
+        roles = await rolesRes.json();
     }
 } catch (e) {
     error = "Connection error.";
@@ -168,8 +177,11 @@ try {
                         name="roleId"
                         class="w-full bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-accent-main"
                     >
-                        <option value="1">ADMIN</option>
-                        <option value="2" selected>USER</option>
+                        {
+                            roles.map((role: any) => (
+                                <option value={role.id}>{role.name}</option>
+                            ))
+                        }
                     </select>
                 </div>
                 <div class="pt-4 flex justify-end">

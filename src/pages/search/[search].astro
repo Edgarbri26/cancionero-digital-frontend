@@ -2,6 +2,7 @@
 // export const prerender = false;
 import Layout from "@/layouts/Layout.astro";
 import GirdSongs from "@/components/GirdSongs.astro";
+import { getUserFromToken } from "@/utils/auth";
 import type { Song } from "../../types/song";
 import type { Category } from "../../types/category";
 const { search } = Astro.params;
@@ -22,22 +23,34 @@ try {
 
     // Get category filter if present
     const categoryId = Astro.url.searchParams.get("categoryId") || "";
+    const activeParam = Astro.url.searchParams.get("active");
 
     const API_URL =
         import.meta.env.PUBLIC_API_URL || "http://localhost:3000/api";
 
     // Fetch songs
+    // Fetch songs
+    const token = Astro.cookies.get("token")?.value;
+    const headers: Record<string, string> = token
+        ? { Authorization: `Bearer ${token}` }
+        : {};
+
     const res = await fetch(
-        `${API_URL}/songs?q=${encodeURIComponent(q)}&categoryId=${categoryId}`,
+        `${API_URL}/songs?q=${encodeURIComponent(q)}&categoryId=${categoryId}&active=${activeParam || ""}`,
+        { headers },
     );
     if (!res.ok) throw new Error("Failed to fetch songs");
     songs = await res.json();
     songs.reverse();
 
     // Fetch categories
-    const catRes = await fetch(`${API_URL}/categories`);
+    const catRes = await fetch(`${API_URL}/categories`, { headers });
     if (catRes.ok) {
         categories = await catRes.json();
+        const user = getUserFromToken(token);
+        if (user?.role === "ADMIN") {
+            categories.push({ id: -1, name: "Inactivas" } as any);
+        }
     }
 } catch (e) {
     if (e instanceof Error) {
@@ -73,8 +86,18 @@ const currentCategoryId = Astro.url.searchParams.get("categoryId");
                 {
                     categories.map((cat) => (
                         <a
-                            href={`/search/${search === "all" ? "all" : search}?categoryId=${cat.id}`}
-                            class={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${currentCategoryId === String(cat.id) ? "bg-accent-main text-white" : "bg-bg-secondary text-text-secondary hover:text-white hover:bg-white/10"}`}
+                            href={
+                                cat.id === -1
+                                    ? `/search/${search === "all" ? "all" : search}?active=false`
+                                    : `/search/${search === "all" ? "all" : search}?categoryId=${cat.id}`
+                            }
+                            class={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                                cat.id === -1
+                                    ? "bg-red-900/30 text-red-200 border border-red-500/30 hover:bg-red-900/50"
+                                    : currentCategoryId === String(cat.id)
+                                      ? "bg-accent-main text-white"
+                                      : "bg-bg-secondary text-text-secondary hover:text-white hover:bg-white/10"
+                            }`}
                         >
                             {cat.name}
                         </a>

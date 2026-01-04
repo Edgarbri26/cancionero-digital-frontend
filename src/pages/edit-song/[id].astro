@@ -56,6 +56,7 @@ try {
 }
 
 let errorMessage = "";
+const canDelete = hasPermission(user, "song.delete");
 
 // Handle Update
 if (Astro.request.method === "POST") {
@@ -181,13 +182,15 @@ if (Astro.request.method === "POST") {
                                 type="checkbox"
                                 id="active"
                                 name="active"
-                                class="w-5 h-5 text-accent-main rounded focus:ring-accent-main bg-gray-700 border-gray-600 cursor-pointer"
+                                class={`w-5 h-5 text-accent-main rounded focus:ring-accent-main bg-gray-700 border-gray-600 ${canDelete ? "cursor-pointer" : "cursor-not-allowed opacity-50"}`}
                                 checked={song.active !== false}
+                                disabled={!canDelete}
                             />
                             <span
-                                class="text-text-main cursor-pointer"
-                                onclick="document.getElementById('active').click()"
-                                >Canción Activa</span
+                                class={`text-text-main ${canDelete ? "cursor-pointer" : "cursor-not-allowed text-gray-500"}`}
+                                onclick={canDelete
+                                    ? "document.getElementById('active').click()"
+                                    : null}>Canción Activa</span
                             >
                         </div>
                     </div>
@@ -210,14 +213,20 @@ if (Astro.request.method === "POST") {
                         initialKey={song.key}
                     />
                     <div class="pt-4 flex justify-between items-center">
-                        <button
-                            type="button"
-                            id="deleteSongBtn"
-                            data-song-id={song.id}
-                            class="bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/50 font-bold py-3 px-8 rounded-lg transition-colors"
-                        >
-                            Eliminar Canción
-                        </button>
+                        {
+                            canDelete && (
+                                <button
+                                    type="button"
+                                    id="deleteSongBtn"
+                                    data-song-id={song.id}
+                                    class="bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/50 font-bold py-3 px-8 rounded-lg transition-colors"
+                                >
+                                    Eliminar Canción
+                                </button>
+                            )
+                        }
+                        {!canDelete && <div />}
+                        {/* Spacer */}
 
                         <button
                             type="submit"
@@ -233,8 +242,13 @@ if (Astro.request.method === "POST") {
 </Layout>
 
 <script>
-import { deleteSong } from "@/services/songs";
-import { showConfirm, showLoading, showSuccessToast, showError } from "@/utils/alerts";
+    import { deleteSong } from "@/services/songs";
+    import {
+        showConfirm,
+        showLoading,
+        showSuccessToast,
+        showError,
+    } from "@/utils/alerts";
 
     const keySelect = document.getElementById("key") as HTMLSelectElement;
 
@@ -274,19 +288,6 @@ import { showConfirm, showLoading, showSuccessToast, showError } from "@/utils/a
             if (confirmed.isConfirmed) {
                 showLoading("Eliminando...");
                 try {
-                    // Need token from somewhere. Since this is client-side script in Astro,
-                    // we might need to get it from a data attribute or cookie if the service handles it.
-                    // The service `deleteSong` takes an optional token.
-                    // Let's assume the service can read the cookie if not passed,
-                    // OR we pass it. The layout usually doesn't expose raw token in DOM for security
-                    // but we can try relying on the service's cookie capability (if modified)
-                    // or just pass it if we have it available.
-                    // Looking at `deleteSong` implementation, it takes `token`.
-                    // We can read the cookie 'token' in JS using a helper or regex if needed.
-                    // Or clearer: put token in a meta tag or data attr.
-                    // Let's check how other pages do it. `misas/[id]` gets it from `document.querySelector("main")?.getAttribute("data-token")`.
-                    // Let's add data-token to main.
-
                     const token = document
                         .querySelector("main")
                         ?.getAttribute("data-token");

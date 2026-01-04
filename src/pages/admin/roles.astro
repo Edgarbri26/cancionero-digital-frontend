@@ -27,6 +27,7 @@ try {
         throw new Error("Error cargando roles");
     }
     roles = await rRes.json();
+    roles = roles.filter((role) => role.name !== "ADMIN");
 
     if (!pRes.ok) {
         throw new Error("Error cargando permisos");
@@ -203,7 +204,8 @@ try {
                         text: "Rol creado correctamente",
                     }).then(() => window.location.reload());
                 } else {
-                    throw new Error("Error al crear rol");
+                    const errData = await res.json().catch(() => ({}));
+                    throw new Error(errData.error || "Error al crear rol");
                 }
             } catch (e) {
                 console.error(e);
@@ -211,7 +213,10 @@ try {
                     ...swalDark,
                     icon: "error",
                     title: "Error",
-                    text: "No se pudo crear el rol",
+                    text:
+                        e instanceof Error
+                            ? e.message
+                            : "No se pudo crear el rol",
                 });
             }
         }

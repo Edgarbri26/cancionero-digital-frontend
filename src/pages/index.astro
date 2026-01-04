@@ -5,6 +5,7 @@ import "../styles/global.css";
 
 import type { Song } from "@/types/song";
 import type { Category } from "@/types/category";
+import { getUserFromToken } from "@/utils/auth";
 import GirdSongs from "@/components/GirdSongs.astro";
 
 let songs: Song[] = [];
@@ -14,21 +15,30 @@ let error = null;
 
 const API_URL = import.meta.env.PUBLIC_API_URL || "http://localhost:3000/api";
 
+const token = Astro.cookies.get("token")?.value;
+const headers: Record<string, string> = token
+	? { Authorization: `Bearer ${token}` }
+	: {};
+
 try {
 	// Fetch latest 10 songs
-	const res = await fetch(`${API_URL}/songs?limit=10`);
+	const res = await fetch(`${API_URL}/songs?limit=10`, { headers });
 	if (!res.ok) throw new Error("Failed to fetch songs");
 	songs = await res.json();
 	// Backend now returns ordered by desc
 
 	// Fetch categories
-	const catRes = await fetch(`${API_URL}/categories`);
+	const catRes = await fetch(`${API_URL}/categories`, { headers });
 	if (catRes.ok) {
 		categories = await catRes.json();
+		const user = getUserFromToken(token);
+		if (user?.role === "ADMIN") {
+			categories.push({ id: -1, name: "Inactivas" } as any);
+		}
 	}
 
 	// Fetch stats
-	const statsRes = await fetch(`${API_URL}/stats`);
+	const statsRes = await fetch(`${API_URL}/stats`, { headers });
 	if (statsRes.ok) {
 		stats = await statsRes.json();
 	}
@@ -102,8 +112,12 @@ try {
 					{
 						categories.map((cat) => (
 							<a
-								href={`/search/all?categoryId=${cat.id}`}
-								class="px-4 py-2 rounded-full text-sm font-medium transition-colors bg-bg-secondary text-text-secondary hover:text-white hover:bg-white/10"
+								href={
+									cat.id === -1
+										? `/search/all?active=false`
+										: `/search/all?categoryId=${cat.id}`
+								}
+								class={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${cat.id === -1 ? "bg-red-900/30 text-red-200 border border-red-500/30 hover:bg-red-900/50" : "bg-bg-secondary text-text-secondary hover:text-white hover:bg-white/10"}`}
 							>
 								{cat.name}
 							</a>

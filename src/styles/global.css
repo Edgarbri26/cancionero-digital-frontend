@@ -1,18 +1,21 @@
 @import "tailwindcss";
 
 @theme {
-  --color-bg-main: #050505;
-  --color-bg-secondary: #1A1A1A;
+    --color-bg-main: #050505;
+    --color-bg-secondary: #1A1A1A;
 
-  --color-accent-main: #FF5722;
-  --color-accent-secondary: #FFC107;
+    --color-accent-main: #FF5722;
+    --color-accent-secondary: #FFC107;
 
-  --color-text-main: #F2F0E6;
-  --color-text-secondary: #9E9E9E;
+    --color-text-main: #F2F0E6;
+    --color-text-secondary: #9E9E9E;
 }
 
 @media print {
-    nav, .no-print, .print-hidden {
+
+    nav,
+    .no-print,
+    .print-hidden {
         display: none !important;
     }
 
@@ -27,7 +30,7 @@
     .text-accent-main {
         color: #f97316 !important;
     }
-    
+
     .bg-bg-secondary\/30 {
         background: none !important;
         border: 1px solid #eee !important;
@@ -40,34 +43,172 @@
         box-shadow: none !important;
     }
 
-    h1, h2, h3 {
+    h1,
+    h2,
+    h3 {
         color: black !important;
     }
-    
+
     /* Remove dark mode overrides if any */
     .bg-bg-main {
         background-color: white !important;
     }
+
     .text-text-main {
         color: black !important;
     }
-    
+
     /* Headers specific styling */
     h1.text-3xl {
         font-size: 24pt !important;
         margin-bottom: 0 !important;
     }
+
     p.text-text-secondary {
         color: #666 !important;
         margin-bottom: 20px !important;
     }
-    
+
     section {
         margin-top: 20px;
     }
-    
+
     h2.text-xl {
         border-color: #f97316 !important;
         color: #f97316 !important;
     }
+}
+
+@media print {
+    @page {
+        margin-top: 3cm;
+        margin-bottom: 2cm;
+        margin-left: 2cm;
+        margin-right: 3cm;
+        /* Added extra space on the right as requested */
+        size: auto;
+    }
+
+    /* Hide UI elements */
+    header,
+    nav,
+    .no-print,
+    button,
+    a[href^="/"] {
+        display: none !important;
+    }
+
+    /* Reset Layout for Print */
+    html,
+    body {
+        height: auto !important;
+        overflow: visible !important;
+        display: block !important;
+        background: white !important;
+        color: black !important;
+        padding: 0 !important;
+        /* Managed by @page */
+    }
+
+    /* Target the wrapper div from Layout */
+    body>div {
+        display: block !important;
+        height: auto !important;
+        flex: none !important;
+        overflow: visible !important;
+    }
+
+    /* Container resets */
+    .max-w-3xl {
+        max-width: none !important;
+        margin: 0 !important;
+        /* Let @page handle margins */
+        padding: 0 !important;
+    }
+
+    /* Article Logic */
+    article {
+        border: none !important;
+        /* Avoid breaking inside to prevent chords getting cut off at top of next page */
+        break-inside: avoid !important;
+        page-break-inside: avoid !important;
+        margin-bottom: 3rem;
+        display: block;
+        padding-top: 1rem;
+    }
+
+    /* Header Styling */
+    .print-header {
+        display: flex !important;
+        align-items: center;
+        gap: 1rem;
+        border-bottom: 1px solid #ccc;
+        padding-bottom: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    /* Fix Absolute Positioning Cut-off for Chords */
+    /* We need to target the individual SongLine divs inside the SongView */
+    .song-content>div>div {
+        break-inside: avoid !important;
+        page-break-inside: avoid !important;
+        /* Add padding to top of each line so the absolute chords (which float up) 
+                   are contained within the layout box of the line. 
+                   This prevents them from being cut off if the line starts a page. */
+        padding-top: 1.2em !important;
+        display: block !important;
+    }
+
+    /* Compensate slightly for the extra spacing if needed, but clarity is key */
+
+    .print-logo {
+        height: 40px;
+    }
+
+    /* Text Colors */
+    p,
+    span,
+    div {
+        color: black !important;
+    }
+
+    /* Footer Styling - Force Layout footer to behave for print */
+    footer {
+        display: flex !important;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        border-top: 1px solid #eee !important;
+        padding-top: 10px !important;
+        background: white !important;
+        /* Override dark theme */
+        color: black !important;
+        z-index: 100;
+        flex-direction: row !important;
+        /* Ensure row layout */
+        justify-content: center;
+    }
+
+    footer p,
+    footer a {
+        color: black !important;
+        /* Ensure footer text is black */
+    }
+
+    /* Prevent Orphan Headers */
+    section h2 {
+        break-after: avoid !important;
+        page-break-after: avoid !important;
+    }
+
+    /* Glue content to header */
+    section>div {
+        break-before: avoid !important;
+        page-break-before: avoid !important;
+    }
+}
+
+.print-header {
+    display: none;
 }

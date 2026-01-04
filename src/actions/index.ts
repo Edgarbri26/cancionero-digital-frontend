@@ -1,8 +1,42 @@
 import { defineAction, ActionError } from "astro:actions";
 import { z } from "astro:schema";
-import { login } from "../services/auth";
+import { login, register } from "../services/auth";
 
 export const server = {
+    register: defineAction({
+        accept: "json",
+        input: z.object({
+            email: z.string().email(),
+            password: z.string().min(6),
+            name: z.string().min(2),
+        }),
+        handler: async ({ email, password, name }) => {
+            try {
+                const response = await register(name, email, password);
+
+                if (!response?.ok) {
+                    let message = "Error al registrar usuario";
+                    try {
+                        const err = await response.json();
+                        message = err.error || message;
+                    } catch (e) { }
+
+                    throw new ActionError({
+                        code: "BAD_REQUEST",
+                        message,
+                    });
+                }
+
+                return { success: true, message: "Usuario registrado correctamente" };
+            } catch (error) {
+                if (error instanceof ActionError) throw error;
+                throw new ActionError({
+                    code: "INTERNAL_SERVER_ERROR",
+                    message: "Error al registrar usuario",
+                });
+            }
+        },
+    }),
     login: defineAction({
         accept: "json",
         input: z.object({

@@ -12,10 +12,9 @@ const canEditSong = hasPermission(user, "song.edit");
     <a
         href={`/`}
         class="p-2 text-text-secondary hover:text-accent-main transition"
-        title="Auto-scroll"
+        title="Volver"
     >
-        <i class="fa-solid fa-minus w-5 h-5 flex items-center justify-center"
-        ></i>
+        <i class="fa-solid fa-arrow-left"></i>
     </a>
 
     {/* Botones de Tono */}
@@ -42,6 +41,16 @@ const canEditSong = hasPermission(user, "song.edit");
 
     <div class="h-px w-8 bg-white/10 my-1"></div>
 
+    <a
+        id="btn-print"
+        href={`/print-song/${id}${Astro.url.search}`}
+        class="p-2 text-text-secondary hover:text-accent-main transition"
+        title="Imprimir"
+    >
+        <i class="fa-solid fa-print w-5 h-5 flex items-center justify-center"
+        ></i>
+    </a>
+
     {
         canEditSong && (
             <a
@@ -66,15 +75,6 @@ const canEditSong = hasPermission(user, "song.edit");
             </a>
         )
     }
-    <a
-        id="btn-print"
-        href={`/print-song/${id}${Astro.url.search}`}
-        class="p-2 text-text-secondary hover:text-accent-main transition"
-        title="Imprimir"
-    >
-        <i class="fa-solid fa-print w-5 h-5 flex items-center justify-center"
-        ></i>
-    </a>
 </aside>
 
 <script>

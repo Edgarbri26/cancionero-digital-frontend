@@ -3,16 +3,32 @@ import Layout from "../layouts/LoginLayout.astro";
 import "../styles/global.css";
 ---
 
-<Layout title="Iniciar Sesión - Cancionero">
+<Layout title="Registrarse - Cancionero">
     <div class="w-full flex-1 flex items-center justify-center p-4">
         <section
             class="w-full max-w-md bg-bg-secondary p-8 rounded-xl shadow-lg border border-white/5"
         >
             <h1 class="text-2xl font-bold text-accent-main mb-6 text-center">
-                Iniciar Sesión
+                Crear Cuenta
             </h1>
 
-            <form id="loginForm" class="space-y-6">
+            <form id="registerForm" class="space-y-6">
+                <div>
+                    <label
+                        for="name"
+                        class="block text-sm font-medium text-text-secondary mb-2"
+                        >Nombre Completo</label
+                    >
+                    <input
+                        type="text"
+                        id="name"
+                        name="name"
+                        required
+                        class="w-full bg-bg-main border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-accent-main transition-colors"
+                        placeholder="Tu Nombre"
+                    />
+                </div>
+
                 <div>
                     <label
                         for="email"
@@ -25,7 +41,7 @@ import "../styles/global.css";
                         name="email"
                         required
                         class="w-full bg-bg-main border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-accent-main transition-colors"
-                        placeholder="admin@example.com"
+                        placeholder="tu@email.com"
                     />
                 </div>
 
@@ -42,6 +58,7 @@ import "../styles/global.css";
                         required
                         class="w-full bg-bg-main border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-accent-main transition-colors"
                         placeholder="••••••••"
+                        minlength="6"
                     />
                 </div>
 
@@ -50,14 +67,14 @@ import "../styles/global.css";
                     type="submit"
                     class="w-full bg-accent-main text-white font-bold py-3 rounded-lg hover:bg-accent-secondary transition-transform transform active:scale-95 flex justify-center items-center gap-2"
                 >
-                    <span>Ingresar</span>
+                    <span>Registrarse</span>
                 </button>
             </form>
 
             <p class="mt-6 text-center text-sm text-text-secondary">
-                ¿No tienes cuenta?
-                <a href="/register" class="text-accent-main hover:underline">
-                    Regístrate aquí
+                ¿Ya tienes cuenta?
+                <a href="/login" class="text-accent-main hover:underline">
+                    Inicia Sesión
                 </a>
             </p>
         </section>
@@ -68,7 +85,7 @@ import "../styles/global.css";
     import { actions } from "astro:actions";
     import { showAlert, showSuccessToast } from "../utils/alerts";
 
-    const form = document.getElementById("loginForm") as HTMLFormElement;
+    const form = document.getElementById("registerForm") as HTMLFormElement;
     const btn = document.getElementById("submitBtn") as HTMLButtonElement;
 
     if (form && btn) {
@@ -83,28 +100,32 @@ import "../styles/global.css";
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                <span>Ingresando...</span>
+                <span>Registrando...</span>
             `;
             btn.classList.add("opacity-75", "cursor-not-allowed");
 
             try {
                 const formData = new FormData(form);
+                const name = formData.get("name") as string;
                 const email = formData.get("email") as string;
                 const password = formData.get("password") as string;
 
-                const { data, error } = await actions.login({
+                const { data, error } = await actions.register({
+                    name,
                     email,
                     password,
                 });
 
                 if (!error && data?.success) {
-                    await showSuccessToast("Sesión iniciada correctamente");
-                    window.location.href = "/";
+                    await showSuccessToast(
+                        "Cuenta creada correctamente. Inicia sesión.",
+                    );
+                    window.location.href = "/login";
                 } else {
                     showAlert({
                         icon: "error",
-                        title: "Error de acceso",
-                        text: error?.message || "Credenciales incorrectas",
+                        title: "Error de registro",
+                        text: error?.message || "No se pudo crear la cuenta",
                     });
                     // Reset button state
                     btn.disabled = false;

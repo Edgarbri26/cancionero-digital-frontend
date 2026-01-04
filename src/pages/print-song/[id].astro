@@ -34,106 +34,24 @@ if (id) {
     <head>
         <meta charset="UTF-8" />
         <title>{song ? `${song.title} - Imprimir` : "Error"}</title>
-         <style is:global>
-            /* Reset básico para impresión */
-            body {
-                background: white !important;
-                color: black !important;
-                font-family: sans-serif;
-                margin: 0;
-                padding: 40px;
-            }
-            .print-container {
-                max-width: 800px;
-                margin: 0 auto;
-            }
-             /* Ocultar elementos no deseados */
-            nav, .no-print {
-                display: none !important;
-            }
-
-            /* Logotipo para impresión: asegurar visibilidad si es blanco/claro */
-            .print-logo {
-                /* filter: brightness(0) saturate(100%); Vuelve el logo negro */
-                height: 48px;
-            }
-
-            /* Estilos del encabezado simple */
-            h1 { 
-                font-size: 28pt; 
-                margin-bottom: 0.1rem; 
-                line-height: 1.2;
-            }
-            h2 { 
-                font-size: 14pt; 
-                color: #666 !important; 
-                margin-top: 0; 
-                margin-bottom: 1.5rem; 
-                font-weight: normal;
-            }
-            .meta { 
-                font-size: 11pt; 
-                color: #444 !important; 
-                margin-bottom: 2rem; 
-                border-bottom: 2px solid #eee; 
-                padding-bottom: 1rem;
-                display: flex;
-                gap: 20px;
-            }
-            .badge {
-                border: 1px solid #ccc;
-                padding: 2px 8px;
-                border-radius: 4px;
-                font-weight: bold;
-            }
-
-            /* Forzar el color de acento para impresión */
-            .text-accent-main {
-                color: #f97316 !important;
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
-            }
-            
-            /* Asegurar que las letras sean negras */
-            p, span, div {
-                color: black;
-            }
-            /* Pero los acordes (que suelen ser span con clase) deben mantener su color si tienen la clase accent */
-            span.text-accent-main {
-                color: #f97316 !important;
-            }
-            
-            /* Footer visible y posicionado */
-            footer {
-                display: flex !important;
-                position: fixed;
-                bottom: 0;
-                left: 0;
-                width: 100%;
-                border-top: 1px solid #eee;
-                padding-top: 10px;
-                background: white;
-            }
-        </style>
     </head>
     <body class="bg-white">
         {error ? (
             <div class="print-container"><h1>{error}</h1></div>
         ) : (
             <div class="print-container">
-                <div class="flex items-center gap-4 mb-6 border-b pb-4">
+                <div class="print-header">
                      <img src="/medium-logo-light.svg" alt="Cancionero Digital" class="print-logo" />
+                     <div>
+                        <h1 class="text-accent-main" style="font-size: 24pt; font-weight: bold; margin: 0;">{song.title}</h1>
+                        <h2 style="font-size: 14pt; color: #666; margin: 0;">{song.artist}</h2>
+                     </div>
                 </div>
 
-                <div class=" gap-4 mb-6">
-                    <h1 class="text-accent-main">{song.title}</h1>
-                    <h2>{song.artist}</h2>
-                </div>
-                
-                <div class="meta">
-                    <span><strong>Tono:</strong> <span class="badge">{displayTone}</span></span>
+                <div class="meta" style="margin-bottom: 2rem; border-bottom: 1px solid #eee; padding-bottom: 1rem;">
+                    <span><strong>Tono:</strong> <span class="badge" style="border: 1px solid #ccc; padding: 2px 8px; border-radius: 4px;">{displayTone}</span></span>
                     {displayTone !== song.key && <span>(Original: {song.key})</span>}
-                    <span><strong>Categoría:</strong> {song.category?.name || "General"}</span>
+                    <span style="margin-left: 20px;"><strong>Categoría:</strong> {song.category?.name || "General"}</span>
                 </div>
 
                 <div class="song-content">
@@ -146,12 +64,14 @@ if (id) {
                 </div>
 
 
-                <script>
+                <script define:vars={{ id, search: Astro.url.search }}>
                     window.onload = () => {
                         window.print();
-
                     }
-                    Astro.redirect("/");
+                    
+                    window.onafterprint = () => {
+                        window.location.href = `/songs/${id}${search}`;
+                    }
                 </script>
             </div>
         )}
