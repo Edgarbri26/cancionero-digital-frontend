@@ -1,29 +1,8 @@
 ---
 const { songs } = Astro.props;
+import SongCard from "./SongCard.astro";
 ---
 
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-    {
-        songs?.map((song: any) => (
-            <a href={`/songs/${song.id}`} class="block group">
-                <article class="bg-bg-secondary border border-white/5 rounded-xl p-5 hover:border-accent-main/50 transition-colors h-full">
-                    <h2 class="text-xl font-bold text-white group-hover:text-accent-main transition-colors mb-1 truncate">
-                        {song.title}
-                    </h2>
-                    <p class="text-text-secondary text-sm mb-4">
-                        {song.artist}
-                    </p>
-
-                    <div class="flex items-center gap-2">
-                        <span class="text-xs bg-white/5 px-2 py-1 rounded text-text-secondary group-hover:bg-accent-main/10 group-hover:text-accent-main transition-colors">
-                            Tom: {song.key}
-                        </span>
-                        <span class="text-xs bg-white/5 px-2 py-1 rounded text-text-secondary group-hover:bg-accent-main/10 group-hover:text-accent-main transition-colors">
-                            Categoría: {song.category?.name}
-                        </span>
-                    </div>
-                </article>
-            </a>
-        ))
-    }
+    {songs?.map((song: any) => <SongCard song={song} />)}
 </div>

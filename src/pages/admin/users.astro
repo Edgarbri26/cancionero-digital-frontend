@@ -122,7 +122,7 @@ try {
     <!-- Modals and Scripts would go here (e.g., using a client island or vanilla JS) -->
     <div
         id="userModal"
-        class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm"
+        class="hidden fixed inset-0 bg-black/50 z-50 items-center justify-center p-4 backdrop-blur-sm"
     >
         <div
             class="bg-white dark:bg-gray-800 w-full max-w-md rounded-xl shadow-2xl overflow-hidden"
@@ -215,8 +215,13 @@ try {
 
     // Helper to toggle modal
     const toggleModal = (show: boolean) => {
-        if (show) modal?.classList.remove("hidden");
-        else modal?.classList.add("hidden");
+        if (show) {
+            modal?.classList.remove("hidden");
+            modal?.classList.add("flex");
+        } else {
+            modal?.classList.add("hidden");
+            modal?.classList.remove("flex");
+        }
     };
 
     openBtn?.addEventListener("click", () => {

@@ -1,18 +1,18 @@
 ---
 // export const prerender = false;
-import Layout from "../../layouts/Layout.astro";
-import type { Category } from "../../types/category";
-import ChordEditor from "../../components/ChordEditor.jsx";
-import KeySelector from "../../components/KeySelector.astro";
-import "../../styles/global.css";
-import { updateSong, deleteSong } from "../../services/songs";
-import { getUserFromToken, hasPermission } from "../../utils/auth";
+import Layout from "@/layouts/Layout.astro";
+import type { Category } from "@/types/category";
+import ChordEditor from "@/components/ChordEditor.jsx";
+import KeySelector from "@/components/KeySelector.astro";
+import "@/styles/global.css";
+import { updateSong, deleteSong } from "@/services/songs";
+import { getUserFromToken, hasPermission } from "@/utils/auth";
 import {
     showError,
     showSuccessToast,
     showConfirm,
     showLoading,
-} from "../../utils/alerts";
+} from "@/utils/alerts";
 
 const token = Astro.cookies.get("token")?.value;
 const user = getUserFromToken(token);

@@ -1,5 +1,5 @@
 ---
-import { getUserFromToken, hasPermission } from "../utils/auth";
+import { getUserFromToken, hasPermission } from "@/utils/auth";
 const token = Astro.cookies.get("token")?.value;
 const user = getUserFromToken(token);
 const isLoggedIn = !!user;
@@ -69,7 +69,7 @@ const canViewAdmin = hasPermission(user, "view.admin");
                 {
                     isLoggedIn && canCreateSong && (
                         <li class="hover:text-text-main cursor-pointer transition-colors">
-                            <a href="/add-song">Add</a>
+                            <a href="/songs/add">Add</a>
                         </li>
                     )
                 }
